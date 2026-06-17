@@ -58,7 +58,7 @@
 
 ### Untuk Vendor (Anda):
 
-1. **Buka admin console:** `https://questionnaire-intake-1.preview.emergentagent.com/discovery`
+1. **Buka admin console:** `https://po-refactor.preview.emergentagent.com/discovery`
 2. Klik **"Buat Session Baru"** → isi nama klien + project + contact
 3. Link otomatis ter-copy ke clipboard (format: `/discovery/<uuid>`)
 4. **Kirim link** ke klien via email/WA
@@ -335,5 +335,5 @@ Total v2.0: 34/34 PASSED (100%)
 **Status:** ✅ **LIVE** & **PRODUCTION-READY** (untuk vendor internal use).
 **Tested:** Backend 100%. Frontend manual tested via screenshots — semua flow berfungsi.
 **Akses:**
-- Admin: https://questionnaire-intake-1.preview.emergentagent.com/discovery
-- Klien: https://questionnaire-intake-1.preview.emergentagent.com/discovery/{session-id}
+- Admin: https://po-refactor.preview.emergentagent.com/discovery
+- Klien: https://po-refactor.preview.emergentagent.com/discovery/{session-id}

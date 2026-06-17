@@ -1,0 +1,619 @@
+<analysis>**original_problem_statement**: 
+The user requested to clone a specific remote repository (), copy it into the working environment, read and analyze all documentation to understand the strict system foundation/guardrails, and map the existing system to prevent data conflicts. The user also noted that Phase 1.5 should be completed but documentation was missing, requesting a status check and update on that front.
+
+**User's preferred language**: Indonesian (INSTRUCT NEXT AGENT: You MUST respond and converse with the user in Indonesian only)
+
+**what currently exists?** 
+A full-stack WMS/ERP platform (Kain Nusantara) with strict backend guardrails. The architecture uses React (Frontend), FastAPI (Backend), and MongoDB. The system enforces a Roll-as-SSOT inventory concept. Phase 1.5 (Inter-Company Transfer Flow) has been completely implemented and verified working. Seed scripts, compliance scripts, and integrity validation scripts are fully active and passing perfectly.
+
+**Last working item**:
+    - Last item agent was working: Housekeeping refactor to address a compliance warning. Split a monster file (, which was 455 lines) into smaller sub-components inside  to ensure it stays well under the 500-line strict limit.
+    - Status: COMPLETED
+    - Agent Testing Done: Y
+    - Which testing method agent to use: Backend python scripts (, ) and frontend compilation checks.
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**: 
+  No active issues. The application is completely healthy, with 0 compliance warnings and 0 data integrity failures.
+
+**In progress Task List**: 
+  None. The previous tasks and housekeeping are finished.
+
+**Upcoming and Future Tasks**
+  *Upcoming Tasks:*
+  - **Sub-fase 1.6: Backorder Lifecycle (P0)** - This is the immediate next step. It requires modifying  (SSOT), adding  state to Sales Orders, updating inbound receiving logic to trigger auto-fulfill, and updating UI. *Note: This is highly complex and touches critical inventory invariants.*
+  - **Sub-fase 1.7: Allocation Policy R1/R2 Configurable (P1)** - Modifying core roll allocation to use config settings while remaining FEFO-compatible.
+  
+  *Future Tasks:*
+  - **Fase 4: Finance & Accounting (P2)** - Arsitektur double-entry (Chart of Accounts, Journal Entries), auto-posting dari Sales dan Purchasing, AR aging.
+  - **Fase 5: RFID + WebSocket (P3)** - Real-time hardware integration.
+  - **Fase 3 Quick Wins**: Supplier Master, Toleransi ±2% receiving.
+
+**Completed work in this session**
+- Cloned external KN6 repository and fully synced it to  while preserving  configurations.
+- Validated Sub-phase 1.5 implementation (Inter-company transfers). Tests passed (36/36).
+- Updated documentation to reflect Sub-phase 1.5 completion (, , ).
+- Split  (DONE)
+- Created  (DONE)
+- Created  (DONE)
+- Created  and added  (DONE)
+
+**Earlier issues found/mentioned but not fixed**
+  None.
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: None.
+  - Recurrence count: 0
+  - Status: RESOLVED
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+Frontend: React, Tailwind CSS, Lucide React
+Backend: FastAPI, Python
+Database: MongoDB
+Architecture: Modular Monolith, Strict Invariant Enforcement (Guardrails), Feature-sliced frontend.
+
+**key DB schema**
+  - products: {id, sku, name, category, variant, dimensions}
+  - inventory_balances: {warehouse_id, product_id, available_qty, reserved_qty}
+  - inventory_rolls: {id, owner, warehouse, product, length, lot}
+  - sales_orders: {order_id, status, items, metrics}
+  - purchase_orders: {po_number, supplier, items, status}
+  - warehouse_transfers: {transfer_id, source, destination, items, transfer_kind}
+
+**changes in tech stack**
+  - None
+
+**All files of reference** 
+  1.  (Updated, minimized logic)
+  2.  (Created)
+  3.  (Created)
+  4.  (Created)
+  5.  (Updated statuses)
+  6.  (Updated backlog and completion states)
+  7.  (Updated)
+
+**Areas that need refactoring**: 
+  Currently None. The most pressing refactor (PO Management monster file) was handled in this session.
+
+**key api endpoints**
+  - 
+  - 
+  - 
+
+**Critical Info for New Agent** 
+- **CRITICAL**: The system has rigorous compliance and integrity checks. After *every* backend modification, you MUST run 
+Menjalankan compliance check...
+
+======================================================================
+  KAIN NUSANTARA — COMPLIANCE REPORT
+======================================================================
+
+============================================================
+
+  CHECK 1: FILE SIZE LIMITS
+
+============================================================
+  ✅ [FILE_SIZE] backend/routers/__init__.py: 1 baris
+  ✅ [FILE_SIZE] backend/routers/admin.py: 352 baris
+  ✅ [FILE_SIZE] backend/routers/audit.py: 15 baris
+  ✅ [FILE_SIZE] backend/routers/auth.py: 39 baris
+  ✅ [FILE_SIZE] backend/routers/customers.py: 82 baris
+  ✅ [FILE_SIZE] backend/routers/cycle_count.py: 242 baris
+  ✅ [FILE_SIZE] backend/routers/dashboard.py: 56 baris
+  ✅ [FILE_SIZE] backend/routers/discovery.py: 470 baris
+  ✅ [FILE_SIZE] backend/routers/documents.py: 121 baris
+  ✅ [FILE_SIZE] backend/routers/entities.py: 79 baris
+  ✅ [FILE_SIZE] backend/routers/inbound_receiving.py: 459 baris
+  ✅ [FILE_SIZE] backend/routers/inventory.py: 150 baris
+  ✅ [FILE_SIZE] backend/routers/invoices.py: 71 baris
+  ✅ [FILE_SIZE] backend/routers/label_printer.py: 144 baris
+  ✅ [FILE_SIZE] backend/routers/notifications.py: 73 baris
+  ✅ [FILE_SIZE] backend/routers/onboarding.py: 81 baris
+  ✅ [FILE_SIZE] backend/routers/outbound_picking.py: 552 baris
+  ✅ [FILE_SIZE] backend/routers/products.py: 133 baris
+  ✅ [FILE_SIZE] backend/routers/purchase_orders.py: 217 baris
+  ✅ [FILE_SIZE] backend/routers/reporting.py: 227 baris
+  ✅ [FILE_SIZE] backend/routers/sales_orders.py: 326 baris
+  ✅ [FILE_SIZE] backend/routers/settings.py: 154 baris
+  ✅ [FILE_SIZE] backend/routers/transfers.py: 565 baris
+  ✅ [FILE_SIZE] backend/routers/uoms.py: 55 baris
+  ✅ [FILE_SIZE] backend/routers/users.py: 55 baris
+  ✅ [FILE_SIZE] backend/routers/warehouses.py: 77 baris
+  ✅ [FILE_SIZE] backend/routers/wms.py: 194 baris
+  ✅ [FILE_SIZE] backend/server.py: 363 baris
+  ✅ [FILE_SIZE] backend/core_utils.py: 50 baris
+  ✅ [FILE_SIZE] backend/dependencies.py: 62 baris
+  ✅ [FILE_SIZE] backend/schemas.py: 317 baris
+  ✅ [FILE_SIZE] backend/permissions_config.py: 56 baris
+  ✅ [FILE_SIZE] Semua router Python dalam batas
+
+============================================================
+
+  CHECK 2: DEBUG STATEMENTS
+
+============================================================
+  ✅ [DEBUG] Tidak ada console.log atau debug print() ditemukan
+
+============================================================
+
+  CHECK 3: DUPLICATE ENDPOINTS
+
+============================================================
+  ✅ [DUPLICATE_ENDPOINT] Tidak ada duplicate endpoint (147 endpoints total)
+
+============================================================
+
+  CHECK 4: FORBIDDEN COLLECTION NAMES (SSOT)
+
+============================================================
+  ✅ [FORBIDDEN_COLLECTION] Tidak ada forbidden collection names ditemukan
+
+============================================================
+
+  CHECK 8: ENTITY REGISTRY SYNC
+
+============================================================
+  ✅ [ENTITY_REGISTRY] Semua 28 collections sudah terdaftar di ENTITY_REGISTRY.md
+
+============================================================
+
+  CHECK 9: REQUIRED DOCUMENTATION
+
+============================================================
+  ✅ [DOCS] ENTITY_REGISTRY.md ✓
+  ✅ [DOCS] CODEBASE_MAP.md ✓
+  ✅ [DOCS] memory/PRD.md ✓
+  ✅ [DOCS] memory/SESSION_HANDOFF.md ✓
+  ✅ [DOCS] memory/SESSION_LOG.md ✓
+  ✅ [DOCS] memory/TECH_DECISIONS.md ✓
+  ✅ [DOCS] plan.md ✓
+  ✅ [DOCS] docs/KN_00_AGENT_QUICK_START.md ✓
+  ✅ [DOCS] docs/KN_13_NAVIGATION_MAP.md ✓
+
+============================================================
+
+  CHECK 11: ENVIRONMENT VARIABLES
+
+============================================================
+  ✅ [ENV] backend/.env: MONGO_URL ✓
+  ✅ [ENV] backend/.env: DB_NAME ✓
+  ✅ [ENV] frontend/.env: REACT_APP_BACKEND_URL ✓
+
+============================================================
+
+  CHECK 12: MONSTER FILE DETECTION
+
+============================================================
+  ✅ [MONSTER_FILE] Tidak ada monster files detected
+
+============================================================
+
+  CHECK 5: HARDCODED IDs / WAREHOUSE IDs
+
+============================================================
+  ✅ [HARDCODED] Tidak ada hardcoded IDs di router files
+
+============================================================
+
+  CHECK 6: SAFE_DOC / SERIALIZATION
+
+============================================================
+  ✅ [SERIALIZATION] Tidak ada langsung return MongoDB result yang mencurigakan
+
+============================================================
+
+  CHECK 7: DATA-TESTID COVERAGE
+
+============================================================
+  ✅ [TESTID] Semua feature files punya data-testid (total: 534 testids)
+
+============================================================
+
+  CHECK 10: API PREFIX (/api/)
+
+============================================================
+  ✅ [API_PREFIX] Semua endpoints menggunakan prefix /api/
+
+============================================================
+
+  CHECK 13: NAMING CONVENTIONS
+
+============================================================
+  ✅ [NAMING] Naming conventions konsisten
+
+============================================================
+
+  CHECK 14: TECH DEBT MARKERS
+
+============================================================
+  ✅ [TECH_DEBT] Tidak ada tech debt markers (TODO/FIXME/HACK)
+
+============================================================
+
+  CHECK 15: IMPORT QUALITY
+
+============================================================
+  ✅ [IMPORTS] Import statements quality check passed
+
+======================================================================
+  SUMMARY: 57 PASS | 0 FAIL | 0 WARN
+======================================================================
+
+🎉 SEMUA CHECKS PASSED! Sistem dalam kondisi baik. and [1m[96m================================================================[0m
+[1m  KN3 — DATA INTEGRITY GATE  (DB=test_database  API=http://localhost:8001)[0m
+[1m[96m================================================================[0m
+
+[96m[1mL0 — Self-check: gate vs ENTITY_REGISTRY (anti self-drift)[0m
+  [92m[PASS][0m 28 koleksi kanonik konsisten dengan ENTITY_REGISTRY
+
+[96m[1mL1/L2 — Rekonsiliasi koleksi Seed↔App (butuh DB clean-seed)[0m
+  [92m[PASS][0m users: 'users' berisi 5 dok
+  [92m[PASS][0m products: 'products' berisi 7 dok
+  [92m[PASS][0m customers: 'customers' berisi 5 dok
+  [92m[PASS][0m warehouses: 'warehouses' berisi 3 dok
+  [92m[PASS][0m uoms: 'uoms' berisi 4 dok
+  [92m[PASS][0m inventory_balances: 'inventory_balances' berisi 12 dok
+  [92m[PASS][0m inventory_movements: 'inventory_movements' berisi 19 dok
+  [92m[PASS][0m inventory_rolls: 'inventory_rolls' berisi 33 dok
+  [92m[PASS][0m system_settings: 'system_settings' berisi 1 dok
+  [92m[PASS][0m payment_terms: 'payment_terms' berisi 6 dok
+  [92m[PASS][0m approval_rules: 'approval_rules' berisi 7 dok
+  [92m[PASS][0m sales_orders: 'sales_orders' berisi 8 dok
+  [92m[PASS][0m purchase_orders: 'purchase_orders' berisi 6 dok
+  [92m[PASS][0m wms_tasks: 'wms_tasks' berisi 18 dok
+  [92m[PASS][0m document_templates: 'document_templates' berisi 2 dok
+  [92m[PASS][0m permission_settings: 'permission_settings' berisi 1 dok
+  [92m[PASS][0m warehouse_transfers: 'warehouse_transfers' berisi 0 dok
+  [92m[PASS][0m cycle_count_sessions: 'cycle_count_sessions' berisi 0 dok
+  [92m[PASS][0m invoices: 'invoices' berisi 0 dok
+  [92m[PASS][0m audit_logs: 'audit_logs' berisi 18 dok
+
+[96m[1mL4 — Invarian akuntansi (level DB)[0m
+  [92m[PASS][0m stok: 12 balance — konservasi qty (bucket fisik) terpenuhi
+  [92m[PASS][0m stok: tidak ada qty negatif
+  [92m[PASS][0m order: 8 order — total_amount == Σ subtotal
+  [92m[PASS][0m order: subtotal == price × quantity
+  [92m[PASS][0m order: 8 order — net_subtotal == total_amount − discount_total
+  [92m[PASS][0m order: 8 order — PPN & grand_total konsisten (mode excluded/included)
+  [92m[PASS][0m order: line_total == subtotal − discount_amount (0 ≤ disc% ≤ 100)
+
+[96m[1mL4-ROLL — Invarian Roll-as-SSOT (KN_15)[0m
+  [92m[PASS][0m roll: 33 roll — 0 ≤ length_remaining ≤ length_initial
+  [92m[PASS][0m roll: referensi owner/warehouse/product valid + lot wajib terisi
+  [92m[PASS][0m roll: 12 segmen — balance == Σ rolls (available/reserved)
+  [92m[PASS][0m order: alokasi owner-scoped (owner == SO.entity_id) — D3 terpenuhi
+
+[96m[1mL5 — Number-series integrity (cegah RC-5 duplicate number)[0m
+  [92m[PASS][0m sales_orders.number: 8 nomor unik (tidak ada duplikat)
+  [92m[PASS][0m purchase_orders.po_number: 6 nomor unik (tidak ada duplikat)
+
+[96m[1mL3 — Invarian INTENT lintas-endpoint (KPI dashboard == sumber data)[0m. The integrity script currently reads 85 PASS / 0 FAIL. Never leave it in a broken state.
+- **Language**: User expects all communication in Indonesian.
+- **Next Phase Strategy**: The agent correctly identified that the upcoming  is highly complex because it touches the SSOT  and inventory invariants. This requires extreme care.
+- If you need to seed data for testing, run [96m[1m
+==============================================================
+  KN3 SEED RESET + INTEGRITY GATE
+==============================================================
+[0m
+[96m[1/3] Seeding realistic data...[0m
+
+🚀 Starting Kain Nusantara Realistic Seed...
+
+✅ Cleared all collections
+✅ Users seeded
+✅ UOMs seeded
+✅ Warehouses seeded
+✅ Products seeded (7 products)
+✅ Customers seeded (5 customers)
+✅ Inventory balances seeded (12 records)
+✅ Initial inventory movements seeded (7)
+✅ Purchase Orders seeded (PO-00001 to PO-00006 with inbound tasks)
+✅ Sales Orders seeded (SO-0001 to SO-0008 with outbound tasks)
+✅ Order snapshots backfilled (sales_name/shipping_city) → 8 order
+✅ Document templates seeded
+✅ Permissions seeded
+✅ Audit logs seeded (6 entries)
+✅ Entities seeded (2) · entity_id tagged → 19 dok · 1 notifikasi
+✅ Inventory rolls generated (33 rolls · 12 segmen)
+✅ Config defaults seeded (settings 1 · payment_terms 6 · approval_rules 7)
+✅ Order pricing backfilled (diskon+PPN+approval, engine create_order) → 8 order
+
+✅ All realistic seed data inserted successfully!
+
+📋 Summary:
+  - 5 Users (admin, sales, manager, warehouse×2)
+  - 7 Products (Batik, Tenun, Lurik, Songket, Ulos, Jumputan, Endek)
+  - 5 Customers
+  - 3 Warehouses (Jakarta, Bandung, Surabaya)
+  - 6 Purchase Orders (PO-00001 → PO-00006)
+  - 8 Sales Orders (SO-0001 → SO-0008)
+  - 10 Inbound tasks · 8 Outbound tasks
+  - 12 inventory balances · 19 movements
+  - 33 inventory rolls (Roll-as-SSOT)
+  - 6 audit logs
+
+[96m[2/4] [GATE] Contract verifier (nama koleksi)...[0m
+
+[96m[1m================================================================[0m
+[1m  KN3 — SCAN CONTRACT: semua router + service[0m
+[96m[1m================================================================[0m
+
+[92m[OK] Tidak ada koleksi terlarang.[0m
+[92m[OK] Semua koleksi dikenal (kanonik).[0m
+
+[1m================================================================[0m
+  [92m[1mCONTRACT OK.[0m
+
+
+[96m[3/4] [GATE] FE↔BE API contract...[0m
+[1m[96m================================================================[0m
+[1m  KN3 — FE↔BE CONTRACT GATE  (API=http://localhost:8001)[0m
+[1m[96m================================================================[0m
+
+[96m[1mCHECK A — Duplicate route (FastAPI pakai definisi TERAKHIR)[0m
+  [92m[OK][0m Tidak ada duplicate route (152 route unik).
+
+[96m[1mCHECK B — FE call → endpoint backend terdaftar?[0m
+  [92m[OK][0m Semua 36 path API FE unik cocok dengan route backend.
+
+[96m[1mCHECK C — Field yang DIBACA FE ada di respons BE?[0m
+  [92m[OK][0m features/orders/OrdersView.jsx: 20 field FE dicek vs /api/sales-orders
+  [92m[OK][0m features/wms/InventoryStockView.jsx: 10 field FE dicek vs /api/inventory/balances
+
+[1m================================================================[0m
+  [91mERROR 0[0m  |  [93mWARN 0[0m
+  [92m[1mFE↔BE CONTRACT OK.[0m
+
+
+[96m[4/4] [GATE] Data-integrity verifier (clean seed)...[0m
+[1m[96m================================================================[0m
+[1m  KN3 — DATA INTEGRITY GATE  (DB=test_database  API=http://localhost:8001)[0m
+[1m[96m================================================================[0m
+
+[96m[1mL0 — Self-check: gate vs ENTITY_REGISTRY (anti self-drift)[0m
+  [92m[PASS][0m 28 koleksi kanonik konsisten dengan ENTITY_REGISTRY
+
+[96m[1mL1/L2 — Rekonsiliasi koleksi Seed↔App (butuh DB clean-seed)[0m
+  [92m[PASS][0m users: 'users' berisi 5 dok
+  [92m[PASS][0m products: 'products' berisi 7 dok
+  [92m[PASS][0m customers: 'customers' berisi 5 dok
+  [92m[PASS][0m warehouses: 'warehouses' berisi 3 dok
+  [92m[PASS][0m uoms: 'uoms' berisi 4 dok
+  [92m[PASS][0m inventory_balances: 'inventory_balances' berisi 12 dok
+  [92m[PASS][0m inventory_movements: 'inventory_movements' berisi 19 dok
+  [92m[PASS][0m inventory_rolls: 'inventory_rolls' berisi 33 dok
+  [92m[PASS][0m system_settings: 'system_settings' berisi 1 dok
+  [92m[PASS][0m payment_terms: 'payment_terms' berisi 6 dok
+  [92m[PASS][0m approval_rules: 'approval_rules' berisi 7 dok
+  [92m[PASS][0m sales_orders: 'sales_orders' berisi 8 dok
+  [92m[PASS][0m purchase_orders: 'purchase_orders' berisi 6 dok
+  [92m[PASS][0m wms_tasks: 'wms_tasks' berisi 18 dok
+  [92m[PASS][0m document_templates: 'document_templates' berisi 2 dok
+  [92m[PASS][0m permission_settings: 'permission_settings' berisi 1 dok
+  [92m[PASS][0m warehouse_transfers: 'warehouse_transfers' berisi 0 dok
+  [92m[PASS][0m cycle_count_sessions: 'cycle_count_sessions' berisi 0 dok
+  [92m[PASS][0m invoices: 'invoices' berisi 0 dok
+  [92m[PASS][0m audit_logs: 'audit_logs' berisi 7 dok
+
+[96m[1mL4 — Invarian akuntansi (level DB)[0m
+  [92m[PASS][0m stok: 12 balance — konservasi qty (bucket fisik) terpenuhi
+  [92m[PASS][0m stok: tidak ada qty negatif
+  [92m[PASS][0m order: 8 order — total_amount == Σ subtotal
+  [92m[PASS][0m order: subtotal == price × quantity
+  [92m[PASS][0m order: 8 order — net_subtotal == total_amount − discount_total
+  [92m[PASS][0m order: 8 order — PPN & grand_total konsisten (mode excluded/included)
+  [92m[PASS][0m order: line_total == subtotal − discount_amount (0 ≤ disc% ≤ 100)
+
+[96m[1mL4-ROLL — Invarian Roll-as-SSOT (KN_15)[0m
+  [92m[PASS][0m roll: 33 roll — 0 ≤ length_remaining ≤ length_initial
+  [92m[PASS][0m roll: referensi owner/warehouse/product valid + lot wajib terisi
+  [92m[PASS][0m roll: 12 segmen — balance == Σ rolls (available/reserved)
+  [92m[PASS][0m order: alokasi owner-scoped (owner == SO.entity_id) — D3 terpenuhi
+
+[96m[1mL5 — Number-series integrity (cegah RC-5 duplicate number)[0m
+  [92m[PASS][0m sales_orders.number: 8 nomor unik (tidak ada duplikat)
+  [92m[PASS][0m purchase_orders.po_number: 6 nomor unik (tidak ada duplikat)
+
+[96m[1mL3 — Invarian INTENT lintas-endpoint (KPI dashboard == sumber data)[0m
+  [92m[PASS][0m dashboard: products KPI 7 == /products 7
+  [92m[PASS][0m dashboard: available KPI 3055.0 == Σbalances 3055.0
+  [92m[PASS][0m dashboard: reserved KPI 220.0 == Σbalances 220.0
+  [92m[PASS][0m orders: stats total 8 == /sales-orders 8
+  [92m[PASS][0m dashboard: active_orders KPI 8 == hitung penuh 8
+
+[1m================================================================[0m
+  [92mPASS 85[0m  |  [91mFAIL 0[0m  |  [93mWARN 0[0m
+  [92m[1mSEMUA INVARIAN VALID.[0m
+
+
+[96m[1m==============================================================[0m
+  [92m[1m✓ SEED + GATE LULUS — DB siap & invarian valid.[0m
+[96m[1m==============================================================[0m
+
+Audit lanjutan (opsional):
+  [96mpython scripts/health_check.py[0m            # sweep endpoint kritis
+  [96mpython scripts/audit_endpoint_sweep.py[0m    # sweep SEMUA GET /api
+  [96mpython scripts/ux_audit.py[0m                # baseline UX
+  [96mpython scripts/audit_collection_drift.py[0m  # koleksi dibaca tapi kosong.
+
+**documents and test reports created in this job** 
+  - /app/plan.md (Modified)
+  - /app/memory/PRD.md (Modified)
+  - /app/memory/SESSION_HANDOFF.md (Modified)
+
+**Last 10 User Messages and any pending HUMAN messages** 
+ 1. oke housekeeping dulu - (COMPLETED) User approved refactoring the heavy PO management file.
+ 2. oke sesuai dengan timeline plan sekarang apa yang bisa dikerjakan dengan sonnet terlebih dahulu ?, tapi sebaiknya jika tidak lompat ompat instruksikan saja untuk pakai opus - (COMPLETED) User asking to identify tasks suitable for standard vs advanced models.
+ 3. coba anda lihat dari dokumen planning, menurut anda bagaimana, kapan harus pakai sonnet dan kapan harus memakai opus - (COMPLETED) Request to evaluate plan regarding model capability.
+ 4. oke sebelum mulai, jawab dengan jujur kapan saya bisa menggunakan sonnet kapan saya harus menggunakan model opus... - (COMPLETED) Meta-question.
+ 5. Start the task now - (COMPLETED) Initiated workspace sync.
+
+**Project Health Check:**
+- Broken: None
+- Mocked: None
+- Health: Excellent (All compliance and data integrity guardrails are passing)
+
+**3rd Party Integrations** 
+  None explicitly active currently needing specific API keys (Standard Emergent LLM key applies if Discovery AI modules are extended).
+
+**Testing status**
+  - Testing agent used after significant changes: NO (Relied on automated python integration/compliance scripts due to nature of work).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: []
+  - Known regressions: []
+
+**Credentials to test flow:**
+Can be seeded automatically via [96m[1m
+==============================================================
+  KN3 SEED RESET + INTEGRITY GATE
+==============================================================
+[0m
+[96m[1/3] Seeding realistic data...[0m
+
+🚀 Starting Kain Nusantara Realistic Seed...
+
+✅ Cleared all collections
+✅ Users seeded
+✅ UOMs seeded
+✅ Warehouses seeded
+✅ Products seeded (7 products)
+✅ Customers seeded (5 customers)
+✅ Inventory balances seeded (12 records)
+✅ Initial inventory movements seeded (7)
+✅ Purchase Orders seeded (PO-00001 to PO-00006 with inbound tasks)
+✅ Sales Orders seeded (SO-0001 to SO-0008 with outbound tasks)
+✅ Order snapshots backfilled (sales_name/shipping_city) → 8 order
+✅ Document templates seeded
+✅ Permissions seeded
+✅ Audit logs seeded (6 entries)
+✅ Entities seeded (2) · entity_id tagged → 19 dok · 1 notifikasi
+✅ Inventory rolls generated (33 rolls · 12 segmen)
+✅ Config defaults seeded (settings 1 · payment_terms 6 · approval_rules 7)
+✅ Order pricing backfilled (diskon+PPN+approval, engine create_order) → 8 order
+
+✅ All realistic seed data inserted successfully!
+
+📋 Summary:
+  - 5 Users (admin, sales, manager, warehouse×2)
+  - 7 Products (Batik, Tenun, Lurik, Songket, Ulos, Jumputan, Endek)
+  - 5 Customers
+  - 3 Warehouses (Jakarta, Bandung, Surabaya)
+  - 6 Purchase Orders (PO-00001 → PO-00006)
+  - 8 Sales Orders (SO-0001 → SO-0008)
+  - 10 Inbound tasks · 8 Outbound tasks
+  - 12 inventory balances · 19 movements
+  - 33 inventory rolls (Roll-as-SSOT)
+  - 6 audit logs
+
+[96m[2/4] [GATE] Contract verifier (nama koleksi)...[0m
+
+[96m[1m================================================================[0m
+[1m  KN3 — SCAN CONTRACT: semua router + service[0m
+[96m[1m================================================================[0m
+
+[92m[OK] Tidak ada koleksi terlarang.[0m
+[92m[OK] Semua koleksi dikenal (kanonik).[0m
+
+[1m================================================================[0m
+  [92m[1mCONTRACT OK.[0m
+
+
+[96m[3/4] [GATE] FE↔BE API contract...[0m
+[1m[96m================================================================[0m
+[1m  KN3 — FE↔BE CONTRACT GATE  (API=http://localhost:8001)[0m
+[1m[96m================================================================[0m
+
+[96m[1mCHECK A — Duplicate route (FastAPI pakai definisi TERAKHIR)[0m
+  [92m[OK][0m Tidak ada duplicate route (152 route unik).
+
+[96m[1mCHECK B — FE call → endpoint backend terdaftar?[0m
+  [92m[OK][0m Semua 36 path API FE unik cocok dengan route backend.
+
+[96m[1mCHECK C — Field yang DIBACA FE ada di respons BE?[0m
+  [92m[OK][0m features/orders/OrdersView.jsx: 20 field FE dicek vs /api/sales-orders
+  [92m[OK][0m features/wms/InventoryStockView.jsx: 10 field FE dicek vs /api/inventory/balances
+
+[1m================================================================[0m
+  [91mERROR 0[0m  |  [93mWARN 0[0m
+  [92m[1mFE↔BE CONTRACT OK.[0m
+
+
+[96m[4/4] [GATE] Data-integrity verifier (clean seed)...[0m
+[1m[96m================================================================[0m
+[1m  KN3 — DATA INTEGRITY GATE  (DB=test_database  API=http://localhost:8001)[0m
+[1m[96m================================================================[0m
+
+[96m[1mL0 — Self-check: gate vs ENTITY_REGISTRY (anti self-drift)[0m
+  [92m[PASS][0m 28 koleksi kanonik konsisten dengan ENTITY_REGISTRY
+
+[96m[1mL1/L2 — Rekonsiliasi koleksi Seed↔App (butuh DB clean-seed)[0m
+  [92m[PASS][0m users: 'users' berisi 5 dok
+  [92m[PASS][0m products: 'products' berisi 7 dok
+  [92m[PASS][0m customers: 'customers' berisi 5 dok
+  [92m[PASS][0m warehouses: 'warehouses' berisi 3 dok
+  [92m[PASS][0m uoms: 'uoms' berisi 4 dok
+  [92m[PASS][0m inventory_balances: 'inventory_balances' berisi 12 dok
+  [92m[PASS][0m inventory_movements: 'inventory_movements' berisi 19 dok
+  [92m[PASS][0m inventory_rolls: 'inventory_rolls' berisi 33 dok
+  [92m[PASS][0m system_settings: 'system_settings' berisi 1 dok
+  [92m[PASS][0m payment_terms: 'payment_terms' berisi 6 dok
+  [92m[PASS][0m approval_rules: 'approval_rules' berisi 7 dok
+  [92m[PASS][0m sales_orders: 'sales_orders' berisi 8 dok
+  [92m[PASS][0m purchase_orders: 'purchase_orders' berisi 6 dok
+  [92m[PASS][0m wms_tasks: 'wms_tasks' berisi 18 dok
+  [92m[PASS][0m document_templates: 'document_templates' berisi 2 dok
+  [92m[PASS][0m permission_settings: 'permission_settings' berisi 1 dok
+  [92m[PASS][0m warehouse_transfers: 'warehouse_transfers' berisi 0 dok
+  [92m[PASS][0m cycle_count_sessions: 'cycle_count_sessions' berisi 0 dok
+  [92m[PASS][0m invoices: 'invoices' berisi 0 dok
+  [92m[PASS][0m audit_logs: 'audit_logs' berisi 7 dok
+
+[96m[1mL4 — Invarian akuntansi (level DB)[0m
+  [92m[PASS][0m stok: 12 balance — konservasi qty (bucket fisik) terpenuhi
+  [92m[PASS][0m stok: tidak ada qty negatif
+  [92m[PASS][0m order: 8 order — total_amount == Σ subtotal
+  [92m[PASS][0m order: subtotal == price × quantity
+  [92m[PASS][0m order: 8 order — net_subtotal == total_amount − discount_total
+  [92m[PASS][0m order: 8 order — PPN & grand_total konsisten (mode excluded/included)
+  [92m[PASS][0m order: line_total == subtotal − discount_amount (0 ≤ disc% ≤ 100)
+
+[96m[1mL4-ROLL — Invarian Roll-as-SSOT (KN_15)[0m
+  [92m[PASS][0m roll: 33 roll — 0 ≤ length_remaining ≤ length_initial
+  [92m[PASS][0m roll: referensi owner/warehouse/product valid + lot wajib terisi
+  [92m[PASS][0m roll: 12 segmen — balance == Σ rolls (available/reserved)
+  [92m[PASS][0m order: alokasi owner-scoped (owner == SO.entity_id) — D3 terpenuhi
+
+[96m[1mL5 — Number-series integrity (cegah RC-5 duplicate number)[0m
+  [92m[PASS][0m sales_orders.number: 8 nomor unik (tidak ada duplikat)
+  [92m[PASS][0m purchase_orders.po_number: 6 nomor unik (tidak ada duplikat)
+
+[96m[1mL3 — Invarian INTENT lintas-endpoint (KPI dashboard == sumber data)[0m
+  [92m[PASS][0m dashboard: products KPI 7 == /products 7
+  [92m[PASS][0m dashboard: available KPI 3055.0 == Σbalances 3055.0
+  [92m[PASS][0m dashboard: reserved KPI 220.0 == Σbalances 220.0
+  [92m[PASS][0m orders: stats total 8 == /sales-orders 8
+  [92m[PASS][0m dashboard: active_orders KPI 8 == hitung penuh 8
+
+[1m================================================================[0m
+  [92mPASS 85[0m  |  [91mFAIL 0[0m  |  [93mWARN 0[0m
+  [92m[1mSEMUA INVARIAN VALID.[0m
+
+
+[96m[1m==============================================================[0m
+  [92m[1m✓ SEED + GATE LULUS — DB siap & invarian valid.[0m
+[96m[1m==============================================================[0m
+
+Audit lanjutan (opsional):
+  [96mpython scripts/health_check.py[0m            # sweep endpoint kritis
+  [96mpython scripts/audit_endpoint_sweep.py[0m    # sweep SEMUA GET /api
+  [96mpython scripts/ux_audit.py[0m                # baseline UX
+  [96mpython scripts/audit_collection_drift.py[0m  # koleksi dibaca tapi kosong.
+
+**What agent forgot to execute**
+The agent successfully fulfilled all instructions, updated documents, and performed the requested housekeeping. Nothing overlooked. 
+
+**Debugging checklist for current issue**
+    No active issues to debug. All systems passing perfectly.</analysis>

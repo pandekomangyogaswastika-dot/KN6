@@ -12,6 +12,66 @@
 - 🧩 **Sales/Finance + CRM (Session #015 lanjutan):** S22–S35 RESOLVED. Eskalasi alokasi ke Admin · entitas dinamis (no hardcode) · multi-rekening `bank_accounts` + SO pilih rekening tujuan (designation ppn/non_ppn) · Special Order (sord_) detail · **Special Price = `price_approvals` (pra_)** + upload bukti (BUKAN koleksi baru) · master data **SSOT tunggal + metadata smart-search/AI-ready** (Sales/Inventory = VIEW, bukan tabel terpisah) · reserved logic KONFIRMASI sudah ada (balance) → upgrade roll. **CRM-LITE + Sales Force** → dokumen baru **`docs/KN_17_SALES_FORCE_CRM.md`**: customer enhanced (assigned_sales_id wajib, payment_profile kontan/tunai/tempo/dp/bertahap, credit control auto-blokir, segment/tags, contacts), **RBAC row-level (sales kelola customer sendiri)**, customer scoped per-entitas (sama boleh lintas-entitas), **sales_targets/sales_incentives/KPI** (penjualan, dicairkan, collection, target, dll), reminder jatuh tempo, advanced (suggestive selling/product focus/smart search) future-ready. Sinkron ENTITY_REGISTRY (customers + sales_targets/sinc/campaigns/cfu + prefixes). Pertanyaan terbuka Q1–Q5 (basis komisi, ambang kredit, customer_group, dll). **NO CODING.**
 
 
+---
+
+## 🟠 PROPOSAL — SUB-FASE 1.6: BACKORDER LIFECYCLE (P0) — MENUNGGU REVIEW USER
+
+> **Status:** DRAFT PROPOSAL (belum dieksekusi). Disusun setelah verifikasi baseline (compliance 57/0/0, integrity 85/0/0, services RUNNING). **Sangat kompleks — menyentuh SSOT `roll_service.py` & invariant inventaris.** Eksekusi dipecah bertahap; setiap tahap punya gate hijau sebelum lanjut.
+
+### Konsep Inti
+Saat SO dibuat dan stok milik entitas penjual **tidak cukup**, alih-alih hard-fail (409), user dapat **OPT-IN backorder**. Sistem mereservasi yang tersedia sekarang + mencatat kekurangan sebagai backorder (status SO `waiting_stock`). Saat barang masuk via **Goods Receipt (GR/inbound complete)**, sistem **auto-fulfill** backorder yang menunggu (FIFO per produk×entitas).
+
+### 🔑 TEMUAN KRITIS (pra-syarat 1.6)
+`inbound_receiving.complete_inbound_receiving` saat ini melakukan **`$inc` langsung ke `inventory_balances` TANPA membuat `inventory_rolls`** → melanggar invariant Roll-as-SSOT (`balance == Σ rolls`). Sekarang integrity PASS hanya karena seed belum pernah men-trigger GR. **1.6 mewajibkan GR membuat ROLL** (bukan $inc) supaya: (a) invariant tetap utuh, (b) auto-fulfill bisa membaca roll baru. Ini menjadi pusat tahap 1.6.3.
+
+### Status Flow (baru)
+`draft → reserved → waiting_approval → approved → confirmed → dispatched → done`
+**+ `waiting_stock`** (paralel `reserved`): muncul bila ada backorder. Auto-fulfill penuh → kembali ke `reserved` (lanjut alur normal). Fulfill parsial → tetap `waiting_stock`.
+
+### Tahapan Eksekusi
+
+**1.6.1 — SSOT: alokasi parsial (backend `roll_service.py`)**
+- `allocate_and_reserve_rolls(..., allow_partial=False)` param baru. Bila `allow_partial=True` & `total_available < quantity`: reservasi hanya `total_available` (TIDAK raise 409); kembalikan allocations utk porsi tersedia (bisa kosong = full backorder). Default `False` = perilaku lama (backward-compatible).
+- Gate: `verify_data_integrity.py` + `validate_compliance.py` tetap hijau; unit test alokasi parsial.
+
+**1.6.2 — SO model + `create_order` backorder (`schemas.py`, `sales_orders.py`)**
+- `SalesOrderCreate.allow_backorder: bool = False`.
+- Per item: hitung `reserved_qty` & `backorder_qty`. Order field baru: `backorders: [...]`, `has_backorder`.
+- Status: `waiting_stock` bila ada backorder; `reserved` bila penuh; 409 lama tetap bila `allow_backorder=False` & stok kurang.
+- **Pricing TIDAK berubah** (tetap atas qty penuh) → invariant `total_amount==Σsubtotal` aman.
+- `cancel`/`release-reservation`/`expire_old_reservations` ikut handle `waiting_stock` (lepas roll + clear backorder).
+
+**1.6.3 — Inbound GR: buat ROLL + auto-fulfill (`inbound_receiving.py`, service baru)**
+- `complete_inbound_receiving`: ganti `$inc` balance → **buat `inventory_rolls`** (status=available, `owner_entity_id` dari `PO.entity_id`, lot/batch, length=final_qty, acquired.via='inbound') + `rebuild_balance(...)`.
+- Service baru `services/backorder_service.py`: `auto_fulfill_backorders(product_id, owner_entity_id)` — cari SO `waiting_stock` (FIFO), reservasi roll baru utk `backorder_qty`, update item/backorders/status, movement + audit. Berhenti saat roll habis.
+- Gate: integrity `balance==Σrolls` WAJIB tetap PASS setelah GR.
+
+**1.6.4 — Invariants & compliance baru (`verify_data_integrity.py`)**
+- INV-BO-1: per item SO, `quantity == reserved_qty + backorder_qty`.
+- INV-BO-2: `status==waiting_stock ⟺ Σ backorder_qty > 0`.
+- INV-BO-3: backorder owner-scoped (entity == SO.entity_id).
+- INV-ROLL-1 tetap valid pasca-GR. Tambah endpoint baru ke `health_check.py` bila ada.
+
+**1.6.5 — Frontend (POS + Orders)**
+- `CartPanel`/`SalesPortal`: bila preview mode `backorder`, tampilkan checkbox **"Izinkan Backorder"** + ringkasan (reservasi sekarang vs backorder); kirim `allow_backorder`.
+- `OrdersView`: status `waiting_stock` (badge "Menunggu Stok", amber), breakdown backorder per item di detail, filter + stats card. Komponen baru dijaga < 500 baris (compliance).
+
+**1.6.6 — Testing end-to-end**
+- Skrip backend: buat SO backorder → GR parsial → verifikasi auto-fulfill + semua invariant (≥85 PASS) + compliance.
+- `testing_agent_v3`: alur penuh POS→Orders→Inbound.
+
+### Risiko & Mitigasi
+- **Tertinggi: perubahan inbound GR (menyentuh SSOT).** Mitigasi: selalu `rebuild_balance` + jalankan integrity gate tiap tahap; kerjakan terisolasi.
+- Race condition auto-fulfill → sudah tertangani reservasi roll atomik (`find_one_and_update`).
+- Backward-compat: semua alur tanpa backorder tidak berubah (`allow_partial`/`allow_backorder` default False).
+
+### Estimasi & Model
+- Tahap 1.6.1–1.6.4 (backend/SSOT/invariant) = **inti kompleks** → disarankan model kuat (Opus).
+- Tahap 1.6.5 (UI) & 1.6.6 (test wiring) = lebih rutin → Sonnet memadai.
+
+---
+
+
 ## Objectives
 - Menjaga baseline ERP demo tetap stabil (backend + frontend) dan mengikuti rule kualitas (no monster files, SSOT, compliance scripts).
 - **(COMPLETED)** Menyelesaikan isu Smart Guidelines (Guided Tour) agar:

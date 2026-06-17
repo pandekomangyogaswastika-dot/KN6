@@ -366,7 +366,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Sales Order Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Login
-    await page.goto('https://questionnaire-intake-1.preview.emergentagent.com');
+    await page.goto('https://po-refactor.preview.emergentagent.com');
     await page.fill('[data-testid="login-email"]', 'sales@kainnusantara.id');
     await page.fill('[data-testid="login-password"]', 'demo12345');
     await page.click('[data-testid="login-submit"]');

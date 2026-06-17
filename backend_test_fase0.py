@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 
 class Fase0APITester:
-    def __init__(self, base_url="https://kn5-mirror.preview.emergentagent.com"):
+    def __init__(self, base_url="https://po-refactor.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.tests_run = 0

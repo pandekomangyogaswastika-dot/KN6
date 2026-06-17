@@ -174,7 +174,7 @@ Before creating PR:
    - MongoDB: localhost:27017
 
 2. Preview (Kubernetes)
-   - URL: https://questionnaire-intake-1.preview.emergentagent.com
+   - URL: https://po-refactor.preview.emergentagent.com
    - Auto-deploy from develop branch
    - Seed data available
 

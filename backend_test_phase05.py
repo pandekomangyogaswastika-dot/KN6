@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 
 class Phase05Tester:
-    def __init__(self, base_url="https://repo-sync-hub.preview.emergentagent.com"):
+    def __init__(self, base_url="https://po-refactor.preview.emergentagent.com"):
         self.base_url = base_url
         self.token = None
         self.tests_run = 0

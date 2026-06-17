@@ -4,7 +4,7 @@ import sys
 from datetime import datetime
 
 class KainNusantaraAPITester:
-    def __init__(self, base_url="https://kain-erp-phase.preview.emergentagent.com"):
+    def __init__(self, base_url="https://po-refactor.preview.emergentagent.com"):
         self.base_url = base_url
         self.tokens = {}
         self.tests_run = 0

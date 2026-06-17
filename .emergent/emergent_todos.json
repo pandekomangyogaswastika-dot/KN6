@@ -1,22 +1,18 @@
 [
   {
-    "content": "1.6.1–1.6.4 — Backend backorder lifecycle (SSOT partial, create_order, inbound GR→roll, auto-fulfill, invariants) — VERIFIED 88 PASS",
+    "content": "1.6.1–1.6.4 — Backend backorder lifecycle — VERIFIED",
     "status": "completed"
   },
   {
-    "content": "1.6.5 — Frontend: checkbox 'Izinkan Backorder' (CartPanel) + status waiting_stock (OrdersView) + split detail ke OrderDetailPanel.jsx",
+    "content": "1.6.5 — Frontend backorder UI — VERIFIED",
     "status": "completed"
   },
   {
-    "content": "1.6.6 — Frontend compile (esbuild) + compliance 57/0/0 + screenshot verifikasi",
+    "content": "1.6.6 — testing_agent_v3 E2E (backend 96% / frontend 100% / integrity 100%, 0 bug)",
     "status": "completed"
   },
   {
-    "content": "1.6.6 — testing_agent_v3 E2E komprehensif (POS backorder → GR → auto-fulfill, backend+frontend)",
-    "status": "in_progress"
-  },
-  {
-    "content": "1.6.6 — Update dokumentasi (plan.md/PRD.md/SESSION_HANDOFF.md) + tandai fase COMPLETED",
-    "status": "pending"
+    "content": "1.6.6 — Dokumentasi diupdate (plan/PRD/handoff) + reseed bersih + gate final hijau",
+    "status": "completed"
   }
 ]

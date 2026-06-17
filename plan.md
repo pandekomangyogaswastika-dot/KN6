@@ -14,10 +14,19 @@
 
 ---
 
-## 🟢 SUB-FASE 1.6: BACKORDER LIFECYCLE (P0) — APPROVED, IN PROGRESS
+## 🟢 SUB-FASE 1.6: BACKORDER LIFECYCLE (P0) — ✅ COMPLETED & TESTED
 
-> **Status:** APPROVED oleh user (opt-in backorder, perbaiki inbound GR, mulai dari 1.6.1). Disusun setelah verifikasi baseline (compliance 57/0/0, integrity 85/0/0, services RUNNING). **Sangat kompleks — menyentuh SSOT `roll_service.py` & invariant inventaris.** Eksekusi dipecah bertahap; setiap tahap punya gate hijau sebelum lanjut.
-> **Progress:** 1.6.1 ⏳ · 1.6.2 ⏳ · 1.6.3 ⏳ · 1.6.4 ⏳ · 1.6.5 ⏳ · 1.6.6 ⏳
+> **Status:** ✅ SELESAI & TERVERIFIKASI (Session ini). Opt-in backorder + perbaikan SSOT inbound GR. testing_agent_v3: backend 96% / frontend 100% / data integrity 100% (0 critical/minor bug). Gate: integrity 88 PASS (clean seed 86) / 0 FAIL · compliance 57/0/0 · frontend compile bersih.
+> **Progress:** 1.6.1 ✅ · 1.6.2 ✅ · 1.6.3 ✅ · 1.6.4 ✅ · 1.6.5 ✅ · 1.6.6 ✅
+>
+> **Ringkasan implementasi:**
+> - SSOT `roll_service.allocate_and_reserve_rolls(allow_partial)` — reservasi parsial (backward-compatible; default raise 409).
+> - `create_order(allow_backorder)` — hitung reserved_qty/backorder_qty per item, status `waiting_stock`, array `backorders`. cancel/release/expire ikut handle waiting_stock.
+> - **Perbaikan SSOT KRITIS:** `inbound_receiving.complete` kini membuat `inventory_rolls` (BUKAN `$inc` balance) + `rebuild_balance` → invarian `balance == Σ rolls` tetap utuh saat GR.
+> - `services/backorder_service.auto_fulfill_backorders()` — FIFO, owner-scoped, dipanggil setelah GR.
+> - Invariant baru `verify_data_integrity.py` L4-BO: INV-BO-1 (qty==reserved+backorder), INV-BO-2 (status waiting_stock ⟺ Σbackorder>0), INV-BO-3 (owner-scoped).
+> - Frontend: CartPanel checkbox "Izinkan Backorder"; OrdersView stat Backorder + filter + status pill `waiting_stock`; detail panel di-split ke `OrderDetailPanel.jsx` (jaga limit 500 baris).
+> - Test: `tests/test_backorder_16.py` (7/7) + testing_agent_v3 iteration_9.
 
 ### Konsep Inti
 Saat SO dibuat dan stok milik entitas penjual **tidak cukup**, alih-alih hard-fail (409), user dapat **OPT-IN backorder**. Sistem mereservasi yang tersedia sekarang + mencatat kekurangan sebagai backorder (status SO `waiting_stock`). Saat barang masuk via **Goods Receipt (GR/inbound complete)**, sistem **auto-fulfill** backorder yang menunggu (FIFO per produk×entitas).

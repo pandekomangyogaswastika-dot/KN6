@@ -432,7 +432,28 @@ Membangun ERP + WMS platform modern untuk industri tekstil tradisional Indonesia
 
 **Gaps Known:**
 - create_order TETAP owner-scoped; inter-company transfer TERPISAH dari create_order (user minta transfer dulu, tunggu approval, baru buat SO)
-- Backorder lifecycle belum ada (waiting_stock + auto-fulfill saat GR)
+- ✅ Backorder lifecycle — DONE (Sub-fase 1.6, lihat 2.17)
+
+---
+
+### 2.17 Backorder Lifecycle (Sub-fase 1.6) ✅
+**Status:** COMPLETED — MUTASI STOK + AUTO-FULFILL (Session ini)
+**Delivery:** Jun 2026
+
+**Features:**
+- SSOT `roll_service.allocate_and_reserve_rolls(allow_partial)`: reservasi parsial roll (default raise 409 → backward-compatible).
+- `POST /api/sales-orders` param `allow_backorder` (opt-in): reservasi stok tersedia + sisa jadi backorder. Status SO baru `waiting_stock`; per item `reserved_qty`/`backorder_qty`; order field `backorders[]` + `has_backorder`.
+- **Perbaikan SSOT KRITIS:** `POST /api/inbound/tasks/{id}/complete` (GR) kini membuat `inventory_rolls` (BUKAN `$inc` balance) + `rebuild_balance` → invarian `balance == Σ rolls` tetap utuh.
+- `services/backorder_service.auto_fulfill_backorders()`: FIFO + owner-scoped, dipanggil otomatis setelah GR → SO `waiting_stock` ter-reservasi (kembali `reserved` saat terpenuhi penuh).
+- cancel/release-reservation/expire_old_reservations menangani `waiting_stock` (lepas roll + clear backorder).
+- Invarian gate baru `verify_data_integrity.py` L4-BO (INV-BO-1/2/3).
+- Frontend: CartPanel checkbox "Izinkan Backorder"; OrdersView stat Backorder + filter + status pill `waiting_stock`; `OrderDetailPanel.jsx` banner backorder + breakdown per item.
+
+**Test:** `tests/test_backorder_16.py` 7/7 + testing_agent_v3 `test_reports/iteration_9.json` (backend 96% / frontend 100% / data integrity 100% — 0 bug). Gate: integrity 88 PASS/0 FAIL, compliance 57/0/0.
+
+**Gaps Known:**
+- Allocation policy R1/R2 configurable belum (Sub-fase 1.7).
+- Partial shipment terhadap backorder (kirim yang tersedia dulu) belum — saat ini SO menunggu fulfil penuh sebelum lanjut approval.
 
 ---
 

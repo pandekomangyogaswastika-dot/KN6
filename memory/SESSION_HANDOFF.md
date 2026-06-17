@@ -9,21 +9,29 @@
 ## ⚡ QUICK STATE (Update setiap session)
 
 ```
-Last Updated:    Session #020 (Sub-fase 1.5 — Inter-Company Transfer Flow: MUTASI stok, pindah kepemilikan B→E)
-Last Agent:      E2 (Emergent)
+Last Updated:    Session #021 (Sub-fase 1.6 — Backorder Lifecycle: opt-in backorder + perbaikan SSOT inbound GR + auto-fulfill)
+Last Agent:      Neo (Emergent)
 Source Repo:     https://github.com/pandekomangyogaswastika-dot/KN6 → di-copy ke /app (preserve .env)
-Backend:         ✅ Running (port 8001) — 154 routes; +/transfers/inter-company +/transfers/{id}/approve/reject (enhanced)
-Frontend:        ✅ Running (port 3000) — InterCompanyTransfers.jsx (WMS nav) + CartPanel "Minta Transfer" button
+Backend:         ✅ Running (port 8001) — +allow_partial (roll_service) +allow_backorder (sales_orders) +backorder_service.auto_fulfill; inbound GR kini buat roll (SSOT)
+Frontend:        ✅ Running (port 3000) — CartPanel checkbox backorder; OrdersView stat/filter/status waiting_stock; OrderDetailPanel.jsx (split baru)
 Database:        test_database @ mongodb://localhost:27017 (DB_NAME di .env; MONGO_URL TIDAK diubah)
-Seed Status:     ✅ Re-seeded (seed_realistic.py) — 7 produk, 8 SO, 6 PO, 33 rolls/12 balances. transfers=0 (normal).
-Gates (Guardrail): ✅ verify_contract OK · verify_data_integrity 85 PASS/0 FAIL ·
-                 verify_api_contract 0 ERROR/0 WARN · health_check 22/0 (+status-board; 3 WARN info normal) ·
-                 audit_endpoint_sweep 0×5xx · ux_audit 0 ERROR/20 WARN (baseline) ·
-                 validate_compliance 56 PASS/0 FAIL/2 WARN (PurchaseOrderManagement.jsx 455 baris — pre-existing)
-Development:     ✅ Fase 1A/1B DONE. ✅ Sub-fase 1.4 (ATP & Fulfillment Modes) DONE. ✅ Sub-fase 1.5 (Inter-Company Transfer Flow) DONE.
-                 BELUM: backorder lifecycle (waiting_stock + auto-fulfill saat GR), allocation policy R1/R2 configurable,
-                 mixed-lot confirmation UI, pegging/earmarking, HPP/unit_cost (Fase 4).
+Seed Status:     ✅ Re-seeded (seed_realistic.py) — 7 produk, 8 SO, 6 PO, 33 rolls/12 balances.
+Gates (Guardrail): ✅ verify_data_integrity 86 PASS/0 FAIL clean-seed (88 pasca-mutasi backorder) — +L4-BO (INV-BO-1/2/3) ·
+                 validate_compliance 57 PASS/0 FAIL/0 WARN (PO monster file sudah di-split sesi lalu; OrdersView di-split ke OrderDetailPanel) ·
+                 frontend esbuild compile bersih · testing_agent_v3 iteration_9: backend 96% / frontend 100% / integrity 100% (0 bug)
+Development:     ✅ Fase 1A/1B · 1.4 · 1.5 · 1.6 DONE.
+                 BELUM: Sub-fase 1.7 (allocation policy R1/R2 configurable), mixed-lot confirmation UI, pegging/earmarking, HPP/unit_cost (Fase 4).
 ```
+
+### Session #021 Notes (Sub-fase 1.6 — Backorder Lifecycle)
+- Konteks: lanjut dari env existing; baseline diverifikasi HIJAU (compliance 57/0/0, integrity 85→86 setelah L4-BO ditambah). User setuju: opt-in backorder, perbaiki inbound GR (latent SSOT bug), mulai 1.6.1.
+- **Temuan kritis & perbaikan:** `inbound_receiving.complete_inbound_receiving` SEBELUMNYA `$inc` langsung ke `inventory_balances` tanpa membuat roll → melanggar invarian Roll-as-SSOT (balance==Σrolls). Kini membuat `inventory_rolls` + `rebuild_balance` → invarian terjaga (terbukti 88 PASS pasca-GR).
+- **Backend:** `roll_service.allocate_and_reserve_rolls(allow_partial)`; `sales_orders.create_order(allow_backorder)` + status `waiting_stock` + `backorders[]`; `services/backorder_service.auto_fulfill_backorders()` (FIFO, owner-scoped) dipanggil dari GR complete; cancel/release/expire menangani waiting_stock.
+- **Invarian baru:** `verify_data_integrity.py` layer L4-BO (INV-BO-1 qty==reserved+backorder; INV-BO-2 status waiting_stock⟺Σbackorder>0; INV-BO-3 owner-scoped).
+- **Frontend:** CartPanel `allow-backorder-checkbox` + `backorder-option-card`; OrdersView `orders-stat-backorder` + filter waiting_stock; `OrderDetailPanel.jsx` (di-split agar OrdersView<500 baris) banner `order-backorder-panel` + breakdown `order-item-backorder-{pid}`; `useAppActions.submitOrder` kirim `allow_backorder`.
+- **Files:** backend roll_service.py, sales_orders.py, inbound_receiving.py, inventory_service.py, schemas.py, services/backorder_service.py (BARU); scripts/verify_data_integrity.py; frontend CartPanel.jsx, OrdersView.jsx, OrderDetailPanel.jsx (BARU), hooks/useAppActions.js, styles/components.css; tests/test_backorder_16.py (BARU); memory/test_credentials.md (diisi).
+- GOTCHA: GR auto-fulfill memakai `PO.entity_id` sebagai owner roll; PO received_qty kini `$inc` (akumulatif). Backorder owner-scoped — auto-fulfill hanya untuk SO entitas yang sama (jaga D3).
+- NEXT: Sub-fase 1.7 (allocation policy R1/R2 configurable). Butuh konfirmasi user.
 
 ### Session #020 Notes (Sub-fase 1.5 — Inter-Company Transfer Flow)
 - Konteks: import repo KN6 ke env baru → rsync preserve .env → install deps (reportlab, openpyxl) → yarn install → seed_realistic → gates HIJAU baseline.

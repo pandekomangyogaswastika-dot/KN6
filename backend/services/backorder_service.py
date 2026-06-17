@@ -27,9 +27,10 @@ async def auto_fulfill_backorders(product_id: str, owner_entity_id: str) -> Dict
     Mengembalikan ringkasan: berapa order disentuh, berapa selesai penuh, total qty
     terpenuhi. Berhenti saat stok available habis (allocate mengembalikan kosong).
     """
+    ACTIVE = ["waiting_stock", "reserved", "waiting_approval", "approved", "confirmed"]
     orders = await db.sales_orders.find(
-        {"status": "waiting_stock", "entity_id": owner_entity_id,
-         "backorders.product_id": product_id},
+        {"has_backorder": True, "status": {"$in": ACTIVE},
+         "entity_id": owner_entity_id, "backorders.product_id": product_id},
         {"_id": 0},
     ).sort("created_at", 1).to_list(500)
 
@@ -81,7 +82,11 @@ async def auto_fulfill_backorders(product_id: str, owner_entity_id: str) -> Dict
         if changed:
             still_bo = any(float(b.get("backorder_qty", 0) or 0) > EPS
                            for b in order.get("backorders", []))
-            new_status = "waiting_stock" if still_bo else "reserved"
+            prev_status = order.get("status")
+            # Decouple status dari backorder (Sub-fase 1.6.1):
+            #  - pure backorder (waiting_stock) → reserved begitu ada porsi ter-reservasi
+            #  - status lain (reserved/waiting_approval/approved/confirmed) TIDAK diubah
+            new_status = "reserved" if prev_status == "waiting_stock" else prev_status
             await db.sales_orders.update_one({"id": order["id"]}, {"$set": {
                 "allocations": order["allocations"],
                 "items": order["items"],
@@ -90,10 +95,16 @@ async def auto_fulfill_backorders(product_id: str, owner_entity_id: str) -> Dict
                 "status": new_status,
                 "updated_at": now_iso(),
             }})
+            # Auto-commit (4a): bila order sudah approved/confirmed, roll backorder yang
+            # baru ter-reservasi langsung di-commit mengikuti approval awal (tanpa approval ulang).
+            if new_status in ("approved", "confirmed"):
+                from services.roll_service import set_order_rolls_status
+                await set_order_rolls_status(order["id"], "committed")
             from dependencies import audit
             await audit("system", "backorder_auto_fulfilled", "sales_order", order["id"], {
                 "product_id": product_id, "qty_fulfilled": round(order_got, 2),
-                "new_status": new_status, "fully_fulfilled": not still_bo,
+                "status": new_status, "fully_fulfilled": not still_bo,
+                "auto_committed": new_status in ("approved", "confirmed"),
             }, "Auto-fulfill backorder saat barang masuk (GR)")
             result["orders_touched"] += 1
             result["qty_fulfilled"] += order_got

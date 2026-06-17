@@ -507,26 +507,27 @@ async def layer_backorder_invariants(db):
         results["pass"] += 1
         line("PASS", G, f"backorder: {len(annotated)} SO — quantity == reserved + backorder per item")
 
-    # INV-BO-2: status waiting_stock <=> Σbackorder>0 + flag has_backorder konsisten (status aktif)
+    # INV-BO-2: konsistensi flag has_backorder + makna waiting_stock (decoupled, Sub-fase 1.6.1)
     bo2_viol = []
     for o in annotated:
         if o.get("status") not in ACTIVE:
             continue
         total_bo = sum(float(it.get("backorder_qty", 0) or 0) for it in o.get("items", []))
-        is_waiting = o.get("status") == "waiting_stock"
+        total_res = sum(float(it.get("reserved_qty", 0) or 0) for it in o.get("items", []))
         has_bo_flag = bool(o.get("has_backorder"))
-        if is_waiting and total_bo <= EPS:
-            bo2_viol.append((o.get("number"), "waiting_stock tanpa backorder"))
-        if (not is_waiting) and total_bo > EPS:
-            bo2_viol.append((o.get("number"), f"status={o.get('status')} tapi backorder>0"))
         if has_bo_flag != (total_bo > EPS):
             bo2_viol.append((o.get("number"), "flag has_backorder tidak konsisten"))
+        if o.get("status") == "waiting_stock":
+            if total_bo <= EPS:
+                bo2_viol.append((o.get("number"), "waiting_stock tanpa backorder"))
+            if total_res > EPS:
+                bo2_viol.append((o.get("number"), "waiting_stock tapi ada porsi reserved (harusnya reserved)"))
     if bo2_viol:
         results["fail"] += 1
-        line("FAIL", R, f"backorder: {len(bo2_viol)} SO status/backorder tak konsisten", str(bo2_viol[:5]))
+        line("FAIL", R, f"backorder: {len(bo2_viol)} SO status/flag tak konsisten", str(bo2_viol[:5]))
     else:
         results["pass"] += 1
-        line("PASS", G, "backorder: status waiting_stock <=> Σbackorder>0 (konsisten)")
+        line("PASS", G, "backorder: flag has_backorder ⟺ Σbackorder>0; waiting_stock ⟹ Σreserved≈0")
 
     # INV-BO-3: backorders[].entity_id == order.entity_id (owner-scoped, jaga D3)
     bo3_viol = []

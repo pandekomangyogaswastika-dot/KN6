@@ -31,6 +31,11 @@ export function OrderDetailPanel({
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
             <StatusPill status={sel.status} />
             <StatusPill status={sel.payment_status} />
+            {sel.has_backorder && (
+              <span data-testid="order-backorder-chip" className="rounded bg-[#FFF1EA] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#B23B14]">
+                Backorder
+              </span>
+            )}
           </div>
         </div>
         <button className="icon-button" onClick={onClose}>

@@ -38,6 +38,16 @@ async def preview_allocation(payload: AllocationPreviewIn, request: Request) -> 
     return await classify_lines(items, entity_id)
 
 
+def _norm_backorder(o: Dict[str, Any]) -> Dict[str, Any]:
+    """Pastikan field backorder (Sub-fase 1.6) selalu ada di respons SO — jaga
+    kontrak FE↔BE konsisten untuk order lama yang dibuat sebelum fitur backorder."""
+    if not o:
+        return o
+    o.setdefault("has_backorder", False)
+    o.setdefault("backorders", [])
+    return o
+
+
 @router.get("/sales-orders")
 async def list_orders(request: Request, status: str = None, customer_id: str = None, entity_id: str = None) -> List[Dict[str, Any]]:
     await require_permission(request, "order", "view")
@@ -51,7 +61,7 @@ async def list_orders(request: Request, status: str = None, customer_id: str = N
         query["entity_id"] = entity_id
     orders = await db.sales_orders.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
     # Defensif: bersihkan ObjectId yang mungkin ter-embed di sub-dokumen (mis. payments[])
-    return [safe_doc(o) for o in orders]
+    return [_norm_backorder(safe_doc(o)) for o in orders]
 
 
 @router.get("/sales-orders/stats/summary")
@@ -178,11 +188,15 @@ async def create_order(payload: SalesOrderCreate, request: Request) -> Dict[str,
         await release_order_rolls(order_id)
         raise HTTPException(status_code=500, detail=str(e))
     expires = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
-    # Status awal: waiting_stock bila ada backorder; reserved bila ada alokasi; draft bila kosong
-    if has_backorder:
-        initial_status = "waiting_stock"
-    elif all_allocations:
+    # Status awal (Sub-fase 1.6.1 — decouple status & backorder):
+    #   - reserved      : ada porsi ter-reservasi (boleh lanjut approval walau ada backorder)
+    #   - waiting_stock : 0 reserved (pure backorder — menunggu stok masuk)
+    #   - draft         : tidak ada apa-apa
+    total_reserved = round(sum(float(it.get("reserved_qty", 0) or 0) for it in items), 2)
+    if total_reserved > 0.01:
         initial_status = "reserved"
+    elif has_backorder:
+        initial_status = "waiting_stock"
     else:
         initial_status = "draft"
     order = {
@@ -237,7 +251,7 @@ async def get_order(order_id: str, request: Request) -> Dict[str, Any]:
     order = safe_doc(await db.sales_orders.find_one({"id": order_id}, {"_id": 0}))
     if not order:
         raise HTTPException(status_code=404, detail="Order tidak ditemukan")
-    return order
+    return _norm_backorder(order)
 
 
 @router.patch("/sales-orders/{order_id}")

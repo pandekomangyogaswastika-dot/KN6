@@ -44,7 +44,7 @@ export default function OrdersView({
   const stats = {
     total: orders.length,
     reserved: orders.filter(o => ["reserved", "waiting_approval", "approved"].includes(o.status)).length,
-    backorder: orders.filter(o => o.status === "waiting_stock").length,
+    backorder: orders.filter(o => o.has_backorder).length,
     confirmed: orders.filter(o => o.status === "confirmed").length,
     done: orders.filter(o => o.status === "done").length,
     cancelled: orders.filter(o => o.status === "cancelled").length,
@@ -162,9 +162,19 @@ export default function OrdersView({
                       onClick={() => setSelectedOrder(order.id === selectedOrder ? null : order.id)}
                     >
                       <div className="min-w-0">
-                        <p data-testid={`order-number-${order.id}`} className="text-[12px] font-bold text-[#007AFF]">
-                          {order.number}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p data-testid={`order-number-${order.id}`} className="text-[12px] font-bold text-[#007AFF]">
+                            {order.number}
+                          </p>
+                          {order.has_backorder && (
+                            <span
+                              data-testid={`order-backorder-chip-${order.id}`}
+                              className="rounded-sm bg-[#FFF1EA] px-1 py-0.5 text-[8.5px] font-bold uppercase tracking-wide text-[#B23B14]"
+                            >
+                              Backorder
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10.5px] text-[#6B6B73] truncate">
                           {(order.items || []).length} item · {order.payment_status === 'paid' ? '✓ Lunas' : 'Belum bayar'}
                         </p>

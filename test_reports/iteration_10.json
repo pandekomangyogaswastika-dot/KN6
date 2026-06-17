@@ -1,0 +1,45 @@
+{
+  "summary": "Completed comprehensive end-to-end testing of Sub-fase 1.6.1 Backorder Approval & Auto-commit features. All backend APIs, data integrity, API contracts, and frontend UI elements verified successfully.",
+  "backend_issues": {
+    "critical_bugs": [],
+    "flaky_endpoints": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Backend: DECOUPLE - SO with allow_backorder=true & qty>stock (stock>0) has status='reserved' (not 'waiting_stock') + has_backorder=true",
+    "Backend: APPROVAL-WITH-BACKORDER - SO 'reserved'+has_backorder can be submitted and approved",
+    "Backend: AUTO-COMMIT - After GR, SO stays 'approved', has_backorder=false, backorder_qty=0, rolls all 'committed'",
+    "Backend: REGRESSION - Normal SO (qty<=stock, no backorder) works correctly with status='reserved'",
+    "Backend: REGRESSION - SO with allow_backorder=false & insufficient stock returns HTTP 409",
+    "Data Integrity: All 88 invariants passed (L0-L5, including L4-BO backorder invariants)",
+    "API Contract: All FE↔BE contract checks passed (0 errors, 0 warnings)",
+    "Frontend: Backorder stat displays count of orders with has_backorder=true",
+    "Frontend: Backorder chip visible in order list for orders with has_backorder=true",
+    "Frontend: Backorder chip visible in order detail panel header",
+    "Frontend: Backorder panel/banner visible in detail panel with explanatory text",
+    "Frontend: Backorder lines showing product and qty waiting",
+    "Frontend: Submit for approval button visible for 'reserved'+backorder orders"
+  ],
+  "test_report_links": [
+    "/app/backend/backend_test.py",
+    "/app/tests/test_backorder_approval_161.py",
+    "/app/scripts/verify_data_integrity.py",
+    "/app/scripts/verify_api_contract.py"
+  ],
+  "success_percentage": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all UI elements verified)",
+    "integrity": "100% (88 PASS / 0 FAIL)",
+    "contract": "100% (0 ERROR / 0 WARN)"
+  },
+  "updated_files": [
+    "/app/backend/backend_test.py"
+  ],
+  "action_item_for_main_agent": "",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_test_itself": false
+}

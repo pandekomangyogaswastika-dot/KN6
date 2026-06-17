@@ -135,16 +135,42 @@ async def create_order(payload: SalesOrderCreate, request: Request) -> Dict[str,
     appr = await evaluate_approval("sales_order", pricing["grand_total"], entity_id)
     order_id = new_id("so")
     # Multi-item reservation di LEVEL ROLL (owner-scoped = entitas penjual; KN_15)
+    # Sub-fase 1.6 — bila allow_backorder: reservasi parsial + sisa jadi backorder.
     all_allocations: List[Dict[str, Any]] = []
+    backorders: List[Dict[str, Any]] = []
     is_split = False
+    has_backorder = False
     try:
         for item in items:
             allocs = await allocate_and_reserve_rolls(
-                item["product_id"], item["quantity"], customer_city, entity_id, order_id
+                item["product_id"], item["quantity"], customer_city, entity_id, order_id,
+                allow_partial=payload.allow_backorder,
             )
+            reserved_qty = round(sum(float(a.get("quantity", 0) or 0) for a in allocs), 2)
+            backorder_qty = round(float(item["quantity"]) - reserved_qty, 2)
+            if backorder_qty < 0.01:
+                backorder_qty = 0.0
+            # Anotasi fulfillment per baris (Sub-fase 1.6)
+            item["reserved_qty"] = reserved_qty
+            item["backorder_qty"] = backorder_qty
             if len(allocs) > 1:
                 is_split = True
             all_allocations.extend(allocs)
+            if backorder_qty > 0.01:
+                has_backorder = True
+                backorders.append({
+                    "id": new_id("bo"),
+                    "product_id": item["product_id"],
+                    "sku": item.get("sku", ""),
+                    "product_name": item.get("product_name", ""),
+                    "entity_id": entity_id,
+                    "customer_city": customer_city,
+                    "requested_qty": round(float(item["quantity"]), 2),
+                    "reserved_qty": reserved_qty,
+                    "backorder_qty": backorder_qty,
+                    "status": "waiting_stock",
+                    "created_at": now_iso(), "updated_at": now_iso(),
+                })
     except HTTPException:
         await release_order_rolls(order_id)
         raise
@@ -152,8 +178,15 @@ async def create_order(payload: SalesOrderCreate, request: Request) -> Dict[str,
         await release_order_rolls(order_id)
         raise HTTPException(status_code=500, detail=str(e))
     expires = (datetime.now(timezone.utc) + timedelta(days=3)).isoformat()
+    # Status awal: waiting_stock bila ada backorder; reserved bila ada alokasi; draft bila kosong
+    if has_backorder:
+        initial_status = "waiting_stock"
+    elif all_allocations:
+        initial_status = "reserved"
+    else:
+        initial_status = "draft"
     order = {
-        "id": order_id, "number": number, "status": "reserved" if all_allocations else "draft",
+        "id": order_id, "number": number, "status": initial_status,
         "entity_id": entity_id,
         "customer_id": customer["id"], "customer_name": customer["name"],
         "customer_city": customer.get("city") or address.get("city"),
@@ -180,6 +213,10 @@ async def create_order(payload: SalesOrderCreate, request: Request) -> Dict[str,
         "is_split_warehouse": is_split, "sales_name": payload.sales_name,
         "shipment_policy": payload.shipment_policy,
         "reservation_expires_at": expires,
+        # Sub-fase 1.6 — backorder lifecycle
+        "allow_backorder": payload.allow_backorder,
+        "has_backorder": has_backorder,
+        "backorders": backorders,
         "created_at": now_iso(), "updated_at": now_iso()
     }
     await db.sales_orders.insert_one(order)
@@ -188,6 +225,8 @@ async def create_order(payload: SalesOrderCreate, request: Request) -> Dict[str,
         "grand_total": pricing["grand_total"], "ppn_amount": pricing["ppn_amount"],
         "discount_total": pricing["discount_total"], "payment_term": term_code,
         "approval_required": appr["requires_approval"], "required_role": appr["required_role"],
+        "has_backorder": has_backorder,
+        "backorder_lines": len(backorders),
     })
     return safe_doc(order)
 
@@ -294,7 +333,7 @@ async def release_reservation(order_id: str, request: Request) -> Dict[str, Any]
     order = safe_doc(await db.sales_orders.find_one({"id": order_id}, {"_id": 0}))
     if not order:
         raise HTTPException(status_code=404, detail="Order tidak ditemukan")
-    if order["status"] not in ["reserved", "waiting_approval", "approved"]:
+    if order["status"] not in ["reserved", "waiting_approval", "approved", "waiting_stock"]:
         raise HTTPException(status_code=409, detail="Order tidak dalam status yang di-reserve")
     # Release reservations di level ROLL (KN_15)
     await release_order_rolls(order_id)
@@ -302,6 +341,8 @@ async def release_reservation(order_id: str, request: Request) -> Dict[str, Any]
     update_data = {
         "status": "draft", 
         "allocations": [],
+        "backorders": [],
+        "has_backorder": False,
         "updated_at": now_iso()
     }
     order = await db.sales_orders.find_one_and_update(
@@ -321,6 +362,6 @@ async def cancel_order(order_id: str, request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=404, detail="Order tidak ditemukan")
     if order["status"] in ["done", "cancelled", "expired"]:
         raise HTTPException(status_code=409, detail="Order tidak bisa dibatalkan")
-    if order["status"] in ["reserved", "waiting_approval", "approved", "confirmed"]:
+    if order["status"] in ["reserved", "waiting_approval", "approved", "confirmed", "waiting_stock"]:
         await release_order_rolls(order_id)
     return await _transition(order_id, [order["status"]], "cancelled", actor["name"], "order_cancelled")

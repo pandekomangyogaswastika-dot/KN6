@@ -146,6 +146,7 @@ class SalesOrderCreate(BaseModel):
     entity_id: str = ""
     order_discount_percent: float = 0     # Fase 1B — diskon level order (0–100%)
     payment_term_code: str = ""           # Fase 1B — term pembayaran (kode)
+    allow_backorder: bool = False         # Sub-fase 1.6 — izinkan reservasi parsial + backorder
 
 
 class AllocationPreviewItem(BaseModel):

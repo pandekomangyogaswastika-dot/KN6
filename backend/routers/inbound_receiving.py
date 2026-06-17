@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pymongo import ReturnDocument
 from db import db
 from dependencies import require_permission, audit
-from core_utils import new_id, now_iso, safe_doc
+from core_utils import new_id, now_iso, safe_doc, DEFAULT_ENTITY_ID
 from schemas import POReceiveItem
 
 router = APIRouter(prefix="/api")
@@ -258,53 +258,66 @@ async def complete_inbound_receiving(task_id: str, request: Request) -> Dict[str
     
     # If reaching completed, update inventory
     if next_stage == "completed":
-        # Check if balance exists
-        balance = await db.inventory_balances.find_one({
+        # Sub-fase 1.6 — Roll-as-SSOT: barang masuk WAJIB menjadi `inventory_rolls`
+        # (BUKAN $inc langsung ke balance) agar invarian `balance == Σ rolls` tetap
+        # utuh; lalu rebuild_balance + auto-fulfill backorder yang menunggu.
+        from services.roll_service import rebuild_balance
+        from services.backorder_service import auto_fulfill_backorders
+
+        # Owner entity diturunkan dari PO (default entitas utama)
+        owner_entity_id = DEFAULT_ENTITY_ID
+        if task.get("po_id"):
+            po_doc = await db.purchase_orders.find_one({"id": task["po_id"]}, {"_id": 0})
+            owner_entity_id = (po_doc or {}).get("entity_id") or DEFAULT_ENTITY_ID
+
+        lot = task.get("lot") or f"LOT-{task.get('po_number', task_id)}"
+        roll_seq = await db.inventory_rolls.count_documents({}) + 1
+        roll_doc = {
+            "id": new_id("roll"),
             "product_id": task["product_id"],
-            "warehouse_id": task["warehouse_id"]
-        })
-        
-        if balance:
-            await db.inventory_balances.update_one(
-                {"product_id": task["product_id"], "warehouse_id": task["warehouse_id"]},
-                {
-                    "$inc": {
-                        "on_hand_qty": final_qty,
-                        "available_qty": final_qty
-                    },
-                    "$set": {"updated_at": now_iso()}
-                }
-            )
-        else:
-            await db.inventory_balances.insert_one({
-                "id": new_id("bal"),
-                "product_id": task["product_id"],
-                "warehouse_id": task["warehouse_id"],
-                "on_hand_qty": final_qty,
-                "reserved_qty": 0.0,
-                "available_qty": final_qty,
-                "blocked_qty": 0.0,
-                "picked_qty": 0.0,
-                "in_transit_qty": 0.0,
-                "updated_at": now_iso()
-            })
-        
-        # Log movement
+            "owner_entity_id": owner_entity_id,
+            "ownership_type": "internal",
+            "consignor_ref": None,
+            "warehouse_id": task["warehouse_id"],
+            "bin_id": task.get("bin_id") or None,
+            "lot": lot,
+            "batch": task.get("batch") or (lot.replace("LOT", "BATCH") if lot else ""),
+            "roll_no": f"RL-{roll_seq:05d}",
+            "length_initial": round(final_qty, 2),
+            "length_remaining": round(final_qty, 2),
+            "unit": task.get("unit", "meter"),
+            "grade": "A",
+            "status": "available",
+            "tracking_mode": "barcode",
+            "earmarked_for": None,
+            "location_type": "warehouse_bin",
+            "reserved_ref": None,
+            "unit_cost": None,
+            "acquired": {"via": "inbound", "ref_id": task.get("po_id") or task_id, "date": now_iso()},
+            "rfid_tag_id": task.get("roll_id") or None,
+            "is_remnant": False,
+            "created_at": now_iso(), "updated_at": now_iso(),
+            "created_by": actor.get("id") or "system", "created_by_name": actor["name"],
+        }
+        await db.inventory_rolls.insert_one(dict(roll_doc))
+
+        # Log movement (owner-scoped, link roll)
         await db.inventory_movements.insert_one({
             "id": new_id("mov"),
             "product_id": task["product_id"],
             "warehouse_id": task["warehouse_id"],
+            "owner_entity_id": owner_entity_id,
             "movement_type": "inbound_receiving",
-            "quantity": final_qty,
-            "unit": task.get("unit", "unit"),
+            "quantity": round(final_qty, 2),
+            "unit": task.get("unit", "meter"),
             "batch": task.get("batch", ""),
-            "lot": task.get("lot", ""),
-            "roll_id": task.get("roll_id", ""),
+            "lot": lot,
+            "roll_id": roll_doc["id"],
             "source_document": f"PO_{task.get('po_number', '')}",
             "timestamp": now_iso()
         })
-        
-        # Update PO item received_qty
+
+        # Update PO item received_qty (akumulatif) + status
         if task.get("po_id"):
             await db.purchase_orders.update_one(
                 {
@@ -312,13 +325,19 @@ async def complete_inbound_receiving(task_id: str, request: Request) -> Dict[str
                     "items.product_id": task["product_id"]
                 },
                 {
+                    "$inc": {"items.$.received_qty": final_qty},
                     "$set": {
-                        "items.$.received_qty": final_qty,
                         "status": "receiving",  # Or "completed" if all items done
                         "updated_at": now_iso()
                     }
                 }
             )
+
+        # Rebuild proyeksi balance segmen (jaga invarian balance == Σ rolls)
+        await rebuild_balance(task["product_id"], task["warehouse_id"], owner_entity_id)
+
+        # AUTO-FULFILL backorder untuk produk + entitas ini (FIFO)
+        await auto_fulfill_backorders(task["product_id"], owner_entity_id)
     
     updated_task = await db.wms_tasks.find_one_and_update(
         {"id": task_id},

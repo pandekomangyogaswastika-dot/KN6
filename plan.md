@@ -14,9 +14,10 @@
 
 ---
 
-## 🟠 PROPOSAL — SUB-FASE 1.6: BACKORDER LIFECYCLE (P0) — MENUNGGU REVIEW USER
+## 🟢 SUB-FASE 1.6: BACKORDER LIFECYCLE (P0) — APPROVED, IN PROGRESS
 
-> **Status:** DRAFT PROPOSAL (belum dieksekusi). Disusun setelah verifikasi baseline (compliance 57/0/0, integrity 85/0/0, services RUNNING). **Sangat kompleks — menyentuh SSOT `roll_service.py` & invariant inventaris.** Eksekusi dipecah bertahap; setiap tahap punya gate hijau sebelum lanjut.
+> **Status:** APPROVED oleh user (opt-in backorder, perbaiki inbound GR, mulai dari 1.6.1). Disusun setelah verifikasi baseline (compliance 57/0/0, integrity 85/0/0, services RUNNING). **Sangat kompleks — menyentuh SSOT `roll_service.py` & invariant inventaris.** Eksekusi dipecah bertahap; setiap tahap punya gate hijau sebelum lanjut.
+> **Progress:** 1.6.1 ⏳ · 1.6.2 ⏳ · 1.6.3 ⏳ · 1.6.4 ⏳ · 1.6.5 ⏳ · 1.6.6 ⏳
 
 ### Konsep Inti
 Saat SO dibuat dan stok milik entitas penjual **tidak cukup**, alih-alih hard-fail (409), user dapat **OPT-IN backorder**. Sistem mereservasi yang tersedia sekarang + mencatat kekurangan sebagai backorder (status SO `waiting_stock`). Saat barang masuk via **Goods Receipt (GR/inbound complete)**, sistem **auto-fulfill** backorder yang menunggu (FIFO per produk×entitas).

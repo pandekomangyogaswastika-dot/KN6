@@ -475,6 +475,75 @@ async def layer_roll_invariants(db):
         line("PASS", G, "order: alokasi owner-scoped (owner == SO.entity_id) — D3 terpenuhi")
 
 
+async def layer_backorder_invariants(db):
+    """Sub-fase 1.6 — Invarian Backorder Lifecycle.
+    Hanya untuk SO ber-anotasi fulfillment (reserved_qty/backorder_qty per item)."""
+    print(f"\n{C}{B}L4-BO — Invarian Backorder (Sub-fase 1.6){X}")
+    EPS = 0.5
+    ACTIVE = {"reserved", "waiting_approval", "approved", "confirmed", "waiting_stock", "dispatched"}
+    orders = await db.sales_orders.find({}, {"_id": 0}).to_list(5000)
+    annotated = [o for o in orders
+                 if any("backorder_qty" in (it or {}) for it in o.get("items", []))]
+    if not annotated:
+        results["pass"] += 1
+        line("PASS", G, "backorder: tidak ada SO ber-anotasi fulfillment (skip — valid)")
+        return
+
+    # INV-BO-1: per item, quantity == reserved_qty + backorder_qty
+    bo1_viol = []
+    for o in annotated:
+        for it in o.get("items", []):
+            if "backorder_qty" not in it:
+                continue
+            q = float(it.get("quantity", 0) or 0)
+            rq = float(it.get("reserved_qty", 0) or 0)
+            bq = float(it.get("backorder_qty", 0) or 0)
+            if abs(q - (rq + bq)) > EPS:
+                bo1_viol.append((o.get("number", o.get("id")), it.get("sku")))
+    if bo1_viol:
+        results["fail"] += 1
+        line("FAIL", R, f"backorder: {len(bo1_viol)} item quantity != reserved+backorder", str(bo1_viol[:5]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, f"backorder: {len(annotated)} SO — quantity == reserved + backorder per item")
+
+    # INV-BO-2: status waiting_stock <=> Σbackorder>0 + flag has_backorder konsisten (status aktif)
+    bo2_viol = []
+    for o in annotated:
+        if o.get("status") not in ACTIVE:
+            continue
+        total_bo = sum(float(it.get("backorder_qty", 0) or 0) for it in o.get("items", []))
+        is_waiting = o.get("status") == "waiting_stock"
+        has_bo_flag = bool(o.get("has_backorder"))
+        if is_waiting and total_bo <= EPS:
+            bo2_viol.append((o.get("number"), "waiting_stock tanpa backorder"))
+        if (not is_waiting) and total_bo > EPS:
+            bo2_viol.append((o.get("number"), f"status={o.get('status')} tapi backorder>0"))
+        if has_bo_flag != (total_bo > EPS):
+            bo2_viol.append((o.get("number"), "flag has_backorder tidak konsisten"))
+    if bo2_viol:
+        results["fail"] += 1
+        line("FAIL", R, f"backorder: {len(bo2_viol)} SO status/backorder tak konsisten", str(bo2_viol[:5]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, "backorder: status waiting_stock <=> Σbackorder>0 (konsisten)")
+
+    # INV-BO-3: backorders[].entity_id == order.entity_id (owner-scoped, jaga D3)
+    bo3_viol = []
+    for o in annotated:
+        for bo in o.get("backorders", []):
+            if bo.get("entity_id") and bo.get("entity_id") != o.get("entity_id"):
+                bo3_viol.append(o.get("number"))
+                break
+    if bo3_viol:
+        results["fail"] += 1
+        line("FAIL", R, f"backorder: {len(bo3_viol)} SO backorder owner != SO.entity_id", str(bo3_viol[:5]))
+    else:
+        results["pass"] += 1
+        line("PASS", G, "backorder: backorder owner-scoped (entity == SO.entity_id) — D3")
+
+
+
 async def main():
     print(f"{B}{C}{'='*64}{X}")
     print(f"{B}  KN3 — DATA INTEGRITY GATE  (DB={DB_NAME}  API={API}){X}")
@@ -485,6 +554,7 @@ async def main():
     await layer1_collection_reconciliation(db)
     await layer2_db_invariants(db)
     await layer_roll_invariants(db)
+    await layer_backorder_invariants(db)
     await layer5_number_series(db)
     await layer3_intent_invariants()
     print(f"\n{B}{'='*64}{X}")

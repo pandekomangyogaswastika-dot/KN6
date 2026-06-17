@@ -174,6 +174,7 @@ export function useAppActions(state) {
         entity_id: entityValue,
         order_discount_percent: Number(extra.order_discount_percent || 0),
         payment_term_code: extra.payment_term_code || "",
+        allow_backorder: Boolean(extra.allow_backorder),
         items: cart.map((item) => ({
           product_id: item.product.id, quantity: item.quantity, unit: item.unit,
           discount_percent: Number(item.discount_percent || 0),

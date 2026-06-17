@@ -104,7 +104,7 @@ async def expire_old_reservations() -> int:
     cutoff = datetime.now(timezone.utc)
     orders = await db.sales_orders.find(
         {
-            "status": {"$in": ["reserved", "waiting_approval", "approved"]},
+            "status": {"$in": ["reserved", "waiting_approval", "approved", "waiting_stock"]},
             "reservation_expires_at": {"$lte": cutoff.isoformat()},
         },
         {"_id": 0},
@@ -115,7 +115,8 @@ async def expire_old_reservations() -> int:
         await release_order_rolls(order["id"])
         await db.sales_orders.update_one(
             {"id": order["id"]},
-            {"$set": {"status": "expired", "allocations": [], "updated_at": now_iso()}}
+            {"$set": {"status": "expired", "allocations": [], "backorders": [],
+                      "has_backorder": False, "updated_at": now_iso()}}
         )
         from dependencies import audit
         await audit(

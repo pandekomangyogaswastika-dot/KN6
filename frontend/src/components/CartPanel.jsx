@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ShoppingBag, PackageCheck, XCircle, Receipt, ArrowLeftRight } from "lucide-react";
+import { ShoppingBag, PackageCheck, XCircle, Receipt, ArrowLeftRight, AlertTriangle } from "lucide-react";
 import { formatCurrency, formatQty } from "../utils/formatters";
 import { computeOrderPreview } from "../utils/pricing";
 import { modeMeta } from "../utils/fulfillment";
@@ -20,11 +20,18 @@ export function CartPanel({
 }) {
   const [orderDiscount, setOrderDiscount] = useState(0);
   const [paymentTerm, setPaymentTerm] = useState("");
+  const [allowBackorder, setAllowBackorder] = useState(false);
 
   const defaultTerm = settings?.finance?.default_payment_term_code || "";
   useEffect(() => {
     if (!paymentTerm && defaultTerm) setPaymentTerm(defaultTerm);
   }, [defaultTerm]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sub-fase 1.6 — deteksi baris yang akan backorder (stok+incoming entitas kurang)
+  const backorderQtyTotal = Object.values(allocationLines || {}).reduce(
+    (sum, l) => sum + (Number(l?.breakdown?.backorder) || 0), 0
+  );
+  const hasBackorderLine = backorderQtyTotal > 0;
 
   const allowItemDiscount = settings?.sales?.allow_item_discount !== false;
   const allowOrderDiscount = settings?.sales?.allow_order_discount !== false;
@@ -229,13 +236,47 @@ export function CartPanel({
           </button>
         )}
 
+        {/* Sub-fase 1.6 — opsi backorder bila stok entitas tak cukup */}
+        {cart.length > 0 && hasBackorderLine && (
+          <div
+            data-testid="backorder-option-card"
+            className="mt-2 rounded-md border border-[#F5C9A6] bg-[#FFF7EF] p-2.5"
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0 text-[#A8221A]" />
+              <div className="min-w-0">
+                <p className="text-[11.5px] font-semibold text-[#8C4A00]">
+                  Stok entitas tidak cukup untuk {formatQty(backorderQtyTotal)} meter.
+                </p>
+                <label className="mt-1.5 flex cursor-pointer items-center gap-2">
+                  <input
+                    data-testid="allow-backorder-checkbox"
+                    type="checkbox"
+                    className="h-3.5 w-3.5 accent-[#0058CC]"
+                    checked={allowBackorder}
+                    onChange={(e) => setAllowBackorder(e.target.checked)}
+                  />
+                  <span className="text-[11.5px] font-medium text-[#1C1C1E]">
+                    Izinkan backorder (reservasi stok tersedia sekarang, sisanya menunggu barang masuk)
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
         <button
           data-testid="submit-sales-order-button"
           className="primary-button mt-2 w-full"
           disabled={!selectedCustomer || !selectedAddress || cart.length === 0}
-          onClick={() => onSubmitOrder({ order_discount_percent: orderDiscount, payment_term_code: paymentTerm })}
+          onClick={() => onSubmitOrder({
+            order_discount_percent: orderDiscount,
+            payment_term_code: paymentTerm,
+            allow_backorder: allowBackorder,
+          })}
         >
-          <PackageCheck size={14} /> Buat Sales Order & Reserve
+          <PackageCheck size={14} />
+          {hasBackorderLine && allowBackorder ? "Buat Order + Backorder" : "Buat Sales Order & Reserve"}
         </button>
       </div>
     </section>

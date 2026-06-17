@@ -282,10 +282,18 @@ async def _split_roll(roll: Dict[str, Any], take: float, order_id: str) -> Dict[
 
 
 async def allocate_and_reserve_rolls(
-    product_id: str, quantity: float, city: str, owner_entity_id: str, order_id: str
+    product_id: str, quantity: float, city: str, owner_entity_id: str, order_id: str,
+    allow_partial: bool = False,
 ) -> List[Dict[str, Any]]:
     """Reservasi roll owner-scoped untuk 1 baris order. Mengembalikan daftar alokasi
-    (per warehouse) yang kompatibel dengan struktur SO lama + info roll/lot."""
+    (per warehouse) yang kompatibel dengan struktur SO lama + info roll/lot.
+
+    Sub-fase 1.6 — Backorder:
+      - `allow_partial=False` (default): perilaku lama. Bila stok < quantity → 409.
+      - `allow_partial=True`: reservasi hanya sebesar stok yang TERSEDIA (tidak 409).
+        Bila stok 0 → kembalikan [] (full backorder). Caller menghitung
+        backorder_qty = quantity − Σ(allocations.quantity).
+    """
     warehouses = {w["id"]: w for w in await db.warehouses.find({}, {"_id": 0}).to_list(100)}
     priority = WAREHOUSE_PRIORITY.get(city, [city, "Jakarta", "Bandung", "Surabaya"])
 
@@ -304,13 +312,22 @@ async def allocate_and_reserve_rolls(
 
     total_available = sum(float(r["length_remaining"]) for r in rolls)
     if total_available + 0.01 < quantity:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Stok milik entitas tidak mencukupi (tersedia {round(total_available,2)} dari {quantity}). "
-                   f"Pemenuhan lintas-entitas akan tersedia di Fase 1.",
-        )
+        if not allow_partial:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Stok milik entitas tidak mencukupi (tersedia {round(total_available,2)} dari {quantity}). "
+                       f"Aktifkan backorder untuk memesan sisa stok yang akan datang.",
+            )
+        # Backorder mode: reservasi hanya sebesar yang tersedia
+        effective_qty = round(total_available, 2)
+    else:
+        effective_qty = quantity
 
-    remaining = quantity
+    if effective_qty <= 0.01:
+        # Tidak ada stok sama sekali → full backorder (caller yang catat)
+        return []
+
+    remaining = effective_qty
     per_wh: Dict[str, Dict[str, Any]] = {}
 
     for roll in rolls:
@@ -340,9 +357,12 @@ async def allocate_and_reserve_rolls(
             break
 
     if remaining > 0.01:
-        # gagal mereservasi cukup (race) → rollback lalu error
-        await release_order_rolls(order_id)
-        raise HTTPException(status_code=409, detail="Stok berubah saat reservasi. Silakan refresh katalog.")
+        if not allow_partial:
+            # gagal mereservasi cukup (race) → rollback lalu error
+            await release_order_rolls(order_id)
+            raise HTTPException(status_code=409, detail="Stok berubah saat reservasi. Silakan refresh katalog.")
+        # Mode backorder: terima reservasi parsial apa adanya (sisa jadi backorder).
+        # Bila tak ada satu pun roll yang ter-reserve → tidak ada alokasi.
 
     allocations: List[Dict[str, Any]] = []
     for wid, info in per_wh.items():

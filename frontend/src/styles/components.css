@@ -148,6 +148,7 @@
 .status-reserved, .status-approved { background: rgba(175, 82, 222, 0.13); color: #6B219A; }
 .status-confirmed, .status-paid, .status-done { background: rgba(52, 199, 89, 0.15); color: #126E2C; }
 .status-waiting_approval, .status-partially_paid { background: rgba(255, 149, 0, 0.16); color: #8C4A00; }
+.status-waiting_stock { background: rgba(255, 92, 0, 0.13); color: #B23B14; }
 .status-cancelled, .status-expired { background: rgba(255, 59, 48, 0.13); color: #A8221A; }
 .status-unpaid { background: rgba(60, 60, 67, 0.08); color: #3C3C43; }
 

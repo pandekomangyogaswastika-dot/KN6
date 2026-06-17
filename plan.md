@@ -19,17 +19,19 @@
 > **Status:** ✅ SELESAI & TERVERIFIKASI (Session ini). Opt-in backorder + perbaikan SSOT inbound GR. testing_agent_v3: backend 96% / frontend 100% / data integrity 100% (0 critical/minor bug). Gate: integrity 88 PASS (clean seed 86) / 0 FAIL · compliance 57/0/0 · frontend compile bersih.
 > **Progress:** 1.6.1 ✅ · 1.6.2 ✅ · 1.6.3 ✅ · 1.6.4 ✅ · 1.6.5 ✅ · 1.6.6 ✅
 
-### 🟢 Sub-fase 1.6.1 (lanjutan) — Decouple Status & Approval-with-Backorder — IN PROGRESS
+### 🟢 Sub-fase 1.6.1 (lanjutan) — Decouple Status & Approval-with-Backorder — ✅ COMPLETED & TESTED
 > Keputusan user: (1a) kerjakan sekarang · (2c) approval sekarang, pengiriman parsial fisik MENYUSUL · (3a) pisahkan `status` dari flag `has_backorder` · (4a) auto-commit ikut approval awal (tanpa approval ulang) · (5a) hormati `shipment_policy` (untuk shipment parsial nanti).
+> **Verifikasi:** testing_agent_v3 iteration_10 — backend 100% (14/14) · frontend 100% · integrity 100% (88/0) · contract 100% (0 ERROR). Self-test `tests/test_backorder_approval_161.py` 9/9 (termasuk 8 roll SO semua 'committed'). Gate seed_reset LULUS · compliance 57/0/0 · esbuild bersih.
 >
-> **Perubahan inti:**
-> - `create_order`: status `reserved` bila ADA porsi ter-reservasi (walau ada backorder); `waiting_stock` HANYA bila 0 reserved (pure backorder). Flag `has_backorder` tetap orthogonal.
-> - `submit_for_approval`/`approve`: SO `reserved` + backorder boleh lanjut approval (commit hanya porsi reserved).
-> - `auto_fulfill_backorders`: target SEMUA SO `has_backorder` (status waiting_stock/reserved/waiting_approval/approved/confirmed) untuk produk+entitas. Saat fulfil: bila status approved/confirmed → roll baru di-commit (auto, tanpa approval ulang); waiting_stock→reserved bila mulai ada reserved; status lain tak diubah; has_backorder clear bila penuh.
+> **Perubahan inti (DONE):**
+> - `create_order`: status `reserved` bila ADA porsi ter-reservasi (walau ada backorder); `waiting_stock` HANYA bila 0 reserved (pure backorder). Flag `has_backorder` orthogonal.
+> - `submit_for_approval`/`approve`: SO `reserved` + backorder lanjut approval (commit hanya porsi reserved).
+> - `auto_fulfill_backorders`: target SEMUA SO `has_backorder` (status aktif) untuk produk+entitas. Approved/confirmed → roll backorder baru di-commit otomatis (4a); waiting_stock→reserved; status lain tak diubah; has_backorder clear bila penuh.
+> - `_norm_backorder()` di GET /sales-orders & /{id}: respons SELALU memuat `has_backorder`/`backorders` (fix FE↔BE contract drift untuk order lama).
 > - Invariant L4-BO direvisi: `has_backorder ⟺ Σbackorder>0`; `waiting_stock ⟹ Σreserved≈0`.
-> - Frontend: stat Backorder = hitung `has_backorder`; chip "Backorder" di list + detail untuk SO reserved/approved yang masih punya backorder.
+> - Frontend: stat Backorder = hitung `has_backorder`; chip "Backorder" di list (`order-backorder-chip-{id}`) + header detail (`order-backorder-chip`).
 >
-> **MENYUSUL (belum):** pengiriman parsial fisik (Surat Jalan untuk porsi reserved + multi-shipment, hormati shipment_policy).
+> **MENYUSUL (belum, butuh konfirmasi user):** pengiriman parsial fisik (Surat Jalan untuk porsi reserved + multi-shipment, hormati `shipment_policy`).
 >
 > **Ringkasan implementasi:**
 > - SSOT `roll_service.allocate_and_reserve_rolls(allow_partial)` — reservasi parsial (backward-compatible; default raise 409).

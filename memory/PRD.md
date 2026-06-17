@@ -453,7 +453,8 @@ Membangun ERP + WMS platform modern untuk industri tekstil tradisional Indonesia
 
 **Gaps Known:**
 - Allocation policy R1/R2 configurable belum (Sub-fase 1.7).
-- Partial shipment terhadap backorder (kirim yang tersedia dulu) belum — saat ini SO menunggu fulfil penuh sebelum lanjut approval.
+- ✅ Approval-with-backorder + decouple status + auto-commit — DONE (Sub-fase 1.6.1).
+- Pengiriman parsial FISIK terhadap backorder (Surat Jalan porsi reserved + multi-shipment, hormati `shipment_policy`) — BELUM (follow-up, butuh konfirmasi user).
 
 ---
 

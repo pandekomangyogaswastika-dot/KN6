@@ -1,22 +1,22 @@
 [
   {
     "content": "1.6.1L — create_order: status reserved bila ada porsi reserved (walau backorder); waiting_stock hanya bila 0 reserved",
-    "status": "in_progress"
+    "status": "completed"
   },
   {
     "content": "1.6.1L — backorder_service.auto_fulfill: target semua SO has_backorder; auto-commit roll baru bila status approved/confirmed; waiting_stock→reserved",
-    "status": "pending"
+    "status": "completed"
   },
   {
-    "content": "1.6.1L — verify_data_integrity L4-BO direvisi (has_backorder⟺Σbackorder>0; waiting_stock⟹Σreserved≈0)",
-    "status": "pending"
+    "content": "1.6.1L — verify_data_integrity L4-BO direvisi + fix contract drift (_norm_backorder)",
+    "status": "completed"
   },
   {
-    "content": "1.6.1L — Frontend: stat Backorder by has_backorder + chip Backorder di list & detail (status reserved/approved + backorder)",
-    "status": "pending"
+    "content": "1.6.1L — Frontend: stat Backorder by has_backorder + chip Backorder di list & detail",
+    "status": "completed"
   },
   {
-    "content": "1.6.1L — Test: skrip E2E approval-with-backorder + GR auto-commit; integrity/compliance gate; testing_agent",
-    "status": "pending"
+    "content": "1.6.1L — Test: self-test 9/9 + testing_agent_v3 iteration_10 (BE 100%/FE 100%/integrity 100%/contract 100%) + dokumentasi",
+    "status": "completed"
   }
 ]

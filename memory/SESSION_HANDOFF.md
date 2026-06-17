@@ -33,6 +33,15 @@ Development:     ✅ Fase 1A/1B · 1.4 · 1.5 · 1.6 DONE.
 - GOTCHA: GR auto-fulfill memakai `PO.entity_id` sebagai owner roll; PO received_qty kini `$inc` (akumulatif). Backorder owner-scoped — auto-fulfill hanya untuk SO entitas yang sama (jaga D3).
 - NEXT: Sub-fase 1.7 (allocation policy R1/R2 configurable). Butuh konfirmasi user.
 
+### Session #021b Notes (Sub-fase 1.6.1 — Decouple Status & Approval-with-Backorder)
+- Keputusan user: (1a) kerjakan sekarang · (2c) approval lanjut sekarang, shipment parsial fisik MENYUSUL · (3a) pisahkan `status` dari flag `has_backorder` · (4a) auto-commit ikut approval awal · (5a) hormati `shipment_policy`.
+- **Backend:** `create_order` status `reserved` bila ada porsi reserved (walau backorder); `waiting_stock` hanya bila 0 reserved (pure backorder). `auto_fulfill_backorders` kini target SEMUA SO `has_backorder` lintas status; bila approved/confirmed → `set_order_rolls_status(committed)` (auto-commit, tanpa approval ulang); `waiting_stock`→`reserved` saat mulai ada reserved; status lain tak diubah. `_norm_backorder()` di GET sales-orders memastikan respons selalu punya `has_backorder`/`backorders` (fix contract drift order lama).
+- **Invariant L4-BO direvisi:** `has_backorder ⟺ Σbackorder>0`; `waiting_stock ⟹ Σreserved≈0`.
+- **Frontend:** stat Backorder dihitung dari `has_backorder` (lintas status); chip "Backorder" di list (`order-backorder-chip-{id}`) + header detail (`order-backorder-chip`).
+- **Verifikasi:** testing_agent_v3 iteration_10 — BE 100% (14/14) · FE 100% · integrity 100% (88/0) · contract 100%. Self-test `tests/test_backorder_approval_161.py` 9/9. Semua gate seed_reset LULUS.
+- GOTCHA: gate `verify_api_contract.py` (CHECK C) menolak FE membaca field yang tidak ada di respons BE untuk data lama — selalu pastikan field baru dinormalisasi di respons GET (`_norm_backorder`).
+- **MENYUSUL:** pengiriman parsial FISIK terhadap backorder (Surat Jalan porsi reserved + multi-shipment) — belum, butuh konfirmasi user. NEXT utama: Sub-fase 1.7.
+
 ### Session #020 Notes (Sub-fase 1.5 — Inter-Company Transfer Flow)
 - Konteks: import repo KN6 ke env baru → rsync preserve .env → install deps (reportlab, openpyxl) → yarn install → seed_realistic → gates HIJAU baseline.
 - Review & mapping: dibaca KN_00, KN_01, PRD.md, plan.md, SESSION_HANDOFF.md, ENGINEERING_GUARDRAILS.md, ENTITY_REGISTRY.md, CODEBASE_MAP.md, KN_14–KN_16, iteration_8.json. Temuan: Sub-fase 1.5 SUDAH DIIMPLEMENTASIKAN di repo KN6 tapi dokumen belum di-update.

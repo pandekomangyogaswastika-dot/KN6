@@ -1,0 +1,84 @@
+{
+  "summary": "Completed Phase 0.5 backend testing for Roll-as-SSOT Inventory Ownership. Critical reservation lifecycle working perfectly. Backend APIs 95% functional (19/20 tests passed). Frontend testing partially completed due to navigation script issues.",
+  "backend_issues": {
+    "critical_bugs": [],
+    "minor_bugs": [
+      {
+        "endpoint": "/api/dashboard/summary",
+        "issue": "Returns 404 Not Found",
+        "impact": "Dashboard summary endpoint not accessible, but /api/dashboard works fine",
+        "fix_priority": "LOW",
+        "workaround": "Use /api/dashboard instead"
+      }
+    ],
+    "flaky_endpoints": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "testing_incomplete": [
+      {
+        "component": "WMS Inventory Views",
+        "issue": "Frontend testing incomplete due to Playwright navigation script issues",
+        "status": "Partially tested - login and initial navigation working",
+        "recommendation": "Manual testing or corrected Playwright script needed for full UI validation"
+      }
+    ]
+  },
+  "passed_tests": [
+    "✅ Authentication (admin@kainnusantara.id login)",
+    "✅ GET /api/inventory/balances - returns balances with owner_entity_id and owner_entity_name",
+    "✅ GET /api/inventory/balances?owner_entity_id=ent_ksc - filters correctly by owner",
+    "✅ GET /api/inventory/rolls - returns 33 rolls with owner, lot, status, length fields",
+    "✅ GET /api/inventory/rolls?owner_entity_id=ent_ksc - filters correctly by owner",
+    "✅ GET /api/inventory/rolls?status=available - filters correctly by status (25 available rolls)",
+    "✅ GET /api/products/{id}/stock-breakdown - returns ownership_matrix, rolls, balances",
+    "✅ Ownership matrix structure correct (owner×warehouse×lot cells with available/reserved/roll_count)",
+    "✅ POST /api/inventory/initial-stock - creates roll with owner/lot/grade validation",
+    "✅ CRITICAL: Create Sales Order - reserves rolls at roll level (available 485→450, reserved 50→85)",
+    "✅ CRITICAL: Roll allocation owner-scoped (allocations.owner_entity_id == order.entity_id)",
+    "✅ CRITICAL: Reserved roll length matches order quantity exactly (35.0m)",
+    "✅ CRITICAL: Approve Sales Order - commits rolls (reserved 85→50, committed 0→35)",
+    "✅ CRITICAL: Cancel Sales Order - releases rolls back to available (485 restored)",
+    "✅ CRITICAL: Balance conservation maintained throughout lifecycle (no stock lost/created)",
+    "✅ Balance projection consistency - available_qty matches sum of available rolls",
+    "✅ GET /api/dashboard - returns metrics with available_qty=3105, reserved_qty=220",
+    "✅ Dashboard KPI consistency verified against sum of balances",
+    "✅ Frontend: Login successful",
+    "✅ Frontend: Initial page load and navigation working"
+  ],
+  "test_report_links": [
+    "/app/backend_test_phase05.py",
+    "/app/tests/poc_roll_reservation.py"
+  ],
+  "success_percentage": {
+    "backend": "95% (19/20 tests passed)",
+    "frontend": "Incomplete (navigation issues in test script)",
+    "critical_features": "100% (reservation lifecycle fully working)"
+  },
+  "action_item_for_main_agent": {
+    "minor_fixes": [
+      "Fix /api/dashboard/summary endpoint (returns 404, should return summary data like /api/dashboard)"
+    ],
+    "frontend_validation": [
+      "Complete frontend testing manually or with corrected Playwright script",
+      "Verify WMS → Stock tab displays owner column (badge)",
+      "Verify WMS → Rolls tab displays roll table with owner/lot/status",
+      "Verify Add Stock form has owner/lot/grade fields",
+      "Verify Sales POS → ProductDetail shows ownership matrix",
+      "Verify Entity Switcher filters inventory by owner"
+    ],
+    "notes": [
+      "Core Phase 0.5 functionality is working correctly",
+      "Roll-level reservation lifecycle is functioning perfectly with balance conservation",
+      "Owner-scoped inventory working as designed",
+      "All critical backend APIs operational"
+    ]
+  },
+  "updated_files": [
+    "/app/backend_test_phase05.py"
+  ],
+  "should_call_test_agent_after_fix": "false",
+  "should_main_agent_test_itself": "true"
+}
